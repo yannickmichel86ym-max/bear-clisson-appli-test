@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow, noarchive">
+<meta name="theme-color" content="#FFF9F3">
+<title>Choisir une aventure · Bear is BacK · V8-dev</title>
+<link rel="stylesheet" href="./style.css">
+<script type="module" src="./aventures.mjs"></script>
+</head>
+<body class="adventures-page">
+<a class="skip-link" href="#adventure-choice">Aller au choix d’aventure</a>
+<header><strong class="brand">BEAR is BacK</strong><span>ATELIER V8</span></header>
+<main class="adventures-main">
+<h1>Choisis ton aventure</h1>
+<p>Quatre noms pour de futures aventures à Clisson. Cet aperçu permet d’explorer le choix ; aucun de ces parcours n’est disponible au guidage.</p>
+<p>Les durées et distances seront définies après vérification des tracés, des accès et des pauses. Aucun itinéraire n’est calculé ici.</p>
+<fieldset id="adventure-choice" tabindex="-1" aria-describedby="choice-help">
+<legend>Quelle aventure te tente ?</legend>
+<p id="choice-help">Choix provisoire, sans enregistrement. Chaque fiche indique les informations encore à vérifier.</p>
+<div id="adventure-cards"><p>Catalogue indisponible tant que le module n’est pas chargé. Aucune aventure ne peut être lancée.</p></div>
+</fieldset>
+<p id="adventure-status" role="status" aria-live="polite">Aucune aventure choisie.</p>
+<section aria-labelledby="custom-title">
+<h2 id="custom-title">Crée ton aventure</h2>
+<p>À l’étude : choisir tes envies et ton point de départ. Personnalisation indisponible dans cet aperçu ; aucun calcul de trajet.</p>
+</section>
+<section aria-labelledby="existing-title">
+<h2 id="existing-title">La trace déjà présente</h2>
+<p>« La Méditation de Papa Ours » reste séparée de ces quatre propositions. Praticabilité et accessibilité : à vérifier. Elle n’est attribuée à aucune catégorie.</p>
+<p><a class="adventure-link" href="./index.html#navigation">Retour à la trace existante et à ses commandes</a></p>
+<p>Ouvrir la page ne démarre pas le GPS ; son activation demande un clic explicite.</p>
+</section>
+<noscript>JavaScript est nécessaire pour afficher les quatre fiches. Aucun choix ni guidage n’est actif ici. Le lien de retour reste disponible.</noscript>
+</main>
+</body>
+</html>

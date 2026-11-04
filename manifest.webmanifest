@@ -1,0 +1,20 @@
+{
+  "name": "Bear is Back · Clisson · V8",
+  "short_name": "Bear · Clisson",
+  "description": "Une balade familiale à Clisson. Atelier V8, guidage et démonstration.",
+  "lang": "fr",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#FFF9F3",
+  "theme_color": "#FFF9F3",
+  "icons": [
+    {
+      "src": "./assets/brand/logo.jpg",
+      "sizes": "2048x2048",
+      "type": "image/jpeg",
+      "purpose": "any"
+    }
+  ],
+  "id": "./"
+}

@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow, noarchive">
+<title>Carnet de l’Ours · BEAR is BacK</title>
+<link rel="stylesheet" href="./style.css">
+<script type="module" src="./carnet.mjs"></script>
+<script type="module" src="./carnet-souvenirs.mjs"></script>
+</head>
+<body class="adventures-page">
+<a class="skip-link" href="#carnet">Aller au carnet</a>
+<header><strong class="brand">BEAR is BacK</strong><span>ATELIER V8</span></header>
+<main id="carnet" class="adventures-main" tabindex="-1">
+<h1>Carnet de l’Ours</h1>
+ <div class="carnet-journey">
+ <p class="rallye-intro">Photographie un monument.<br><strong>L’Ours te raconte son histoire.</strong></p>
+ <p>Un souvenir à garder, une histoire à partager en famille. Arrête-toi en sécurité avant de prendre une photo.</p>
+ <article class="observation-card"><p class="eyebrow">1 · TON REGARD</p>
+ <label class="photo-picker" for="rallye-photo">＋ Prendre ou choisir une photo <small>Facultatif · aucun envoi</small></label><input id="rallye-photo" type="file" accept="image/*">
+ <div id="photo-draft" hidden><img id="photo-preview" alt="Ta photo personnelle"><button id="photo-remove" type="button" aria-label="Effacer cette photo locale">Effacer cette photo</button></div><p id="photo-feedback" role="status" aria-live="polite"></p>
+ <p class="rallye-note">Tant que tu ne la gardes pas dans ton carnet, la photo reste uniquement dans cet onglet et disparaît au rechargement. Aucun lieu ni date déduit de l’image.</p></article>
+ <article class="culture-card"><p class="eyebrow">2 · À TOI DE CHOISIR</p><h3>Quel monument regardes-tu ?</h3>
+ <p>Choisis toi-même son nom. La photo et ta position GPS ne l’identifient pas.</p>
+ <label for="monument-choice">Monument à découvrir</label><select id="monument-choice" disabled><option value="">Choisir un monument…</option></select>
+ <div id="story-empty"><h3>L’Ours prépare ses histoires.</h3><p>Aucune fiche historique suffisamment sourcée n’est disponible dans cet atelier. Garde ta photo ici si tu veux, puis explore le voyage dans le temps ou reprends la balade.</p><a href="./timeline.html">Explorer l’histoire →</a></div>
+ <div id="story-card" hidden><p id="story-text"></p><p id="story-source"></p><p>Récit de la fiche choisie manuellement ; l’identité du monument photographié n’est pas vérifiée.</p><button type="button" id="story-play" aria-label="Écouter la fiche choisie" disabled>Écouter l’histoire</button><button type="button" id="story-stop" aria-label="Arrêter la lecture du récit" disabled>Arrêter la lecture</button></div><p id="story-voice-note" class="rallye-note"></p></article>
+ <article class="souvenir-card" aria-labelledby="souvenir-title"><p class="eyebrow">3 · TON SOUVENIR</p><h3 id="souvenir-title">Garder ce moment dans ton carnet</h3>
+ <p>Facultatif. Le souvenir reste sur cet appareil : ni compte, ni envoi, ni position GPS. La date notée est celle de l’enregistrement.</p>
+ <label for="souvenir-legend">Ta légende <small id="souvenir-count" aria-live="off">0 / 280</small></label><textarea id="souvenir-legend" maxlength="280" rows="3" placeholder="Ce qu’on a vu, ressenti, raconté…"></textarea>
+ <p id="souvenir-photo-note" class="rallye-note">Aucune photo : le souvenir sera gardé avec sa légende seule.</p>
+ <button type="button" id="souvenir-save" class="primary" aria-label="Garder ce souvenir sur cet appareil" disabled>Garder dans mon carnet</button>
+ <p id="souvenir-status" role="status" aria-live="polite"></p>
+ <h3>Mes souvenirs</h3><p id="souvenir-empty">Aucun souvenir gardé pour le moment.</p><ul id="souvenir-list" class="souvenir-list"></ul>
+ <div class="souvenir-tools"><button type="button" id="souvenir-export" aria-label="Exporter tout le carnet dans un fichier sur cet appareil" disabled>Exporter mon carnet</button><button type="button" id="souvenir-clear" aria-label="Effacer définitivement tous les souvenirs de cet appareil" disabled>Tout effacer</button></div>
+ <p id="souvenir-usage" class="rallye-note"></p>
+ <p class="rallye-note">Sur iPhone, Safari peut effacer les données d’un site resté longtemps sans visite, et l’effacement de l’historique les supprime aussi. Exporte ton carnet pour le garder durablement.</p></article>
+ <p class="rallye-note">Continue la balade avec ou sans photo : le guidage et la progression GPS restent indépendants du carnet.</p>
+ </div>
+<noscript>Le choix de photo nécessite JavaScript. Aucune histoire sourcée disponible. <a href="./timeline.html">Consulter l’histoire</a>.</noscript>
+<p><a class="adventure-link" href="./index.html#navigation">Retour à la trace et à ses commandes</a></p>
+</main>
+</body>
+</html>

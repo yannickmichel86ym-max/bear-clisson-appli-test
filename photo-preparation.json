@@ -1,0 +1,84 @@
+{
+  "schemaVersion": 1,
+  "statut": "préparation uniquement",
+  "pointsDeVue": [],
+  "inventaireLocal": {
+    "trace": {
+      "fichier": "data/parcours.json",
+      "sha256": "ea1e3ff2c2cc3d260df96eedc6ca8b1b6b2b76ffbbcfd3f5583fcefd3599e0f3",
+      "usage": "Trace existante, pas une preuve de point de prise de vue",
+      "sourceOriginale": "à vérifier"
+    },
+    "imagesExaminees": [
+      "assets/icon.svg",
+      "assets/icon-192.png",
+      "assets/icon-512.png",
+      "assets/brand/logo.jpg",
+      "assets/brand/clisson-photo-fournie.jpg",
+      "assets/brand/clisson-sevre-photo-fournie.jpg"
+    ],
+    "photosDeClissonVerifiables": [],
+    "imageAccueil": {
+      "fichier": "assets/brand/clisson-sevre-photo-fournie.jpg",
+      "origine": "Photo envoyée dans cette conversation le 03/11/2026, identique à Downloads/images.jpeg",
+      "sha256": "43862e8177fc30c09072d80c79a454ada220102a4dddb0faa21e61319516cb32",
+      "dimensionsPixels": "679x450",
+      "usage": "illustration de l’accueil en prévisualisation locale, sans déduction de coordonnées GPS ni droits de diffusion publique",
+      "limite": "résolution insuffisante pour garantir une netteté sur grand écran"
+    }
+  },
+  "ficheACompleter": {
+    "statut": "bloqué — sources manquantes",
+    "lieu": {
+      "nom": "à vérifier",
+      "sujet": "à vérifier",
+      "source": "à vérifier"
+    },
+    "positionPriseDeVue": {
+      "latitude": null,
+      "longitude": null,
+      "certitude": "à vérifier",
+      "source": "à vérifier"
+    },
+    "orientation": {
+      "azimutDegres": null,
+      "direction": "à vérifier",
+      "cadrage": "à vérifier",
+      "lumiereEtMoment": "à vérifier",
+      "source": "à vérifier"
+    },
+    "accessibilite": {
+      "accesPublic": "à vérifier",
+      "arretSur": "à vérifier",
+      "poussette": "à vérifier",
+      "fauteuil": "à vérifier",
+      "marchesEtPentes": "à vérifier",
+      "horaires": "à vérifier",
+      "source": "à vérifier"
+    },
+    "photoReference": {
+      "fichier": null,
+      "lieuRepresente": "à vérifier",
+      "pointEtDirectionDePriseDeVue": "à vérifier",
+      "source": "à vérifier"
+    },
+    "droitUtilisation": {
+      "auteur": "à vérifier",
+      "titulaire": "à vérifier",
+      "licenceOuAutorisation": "à vérifier",
+      "preuveLocale": "à vérifier",
+      "attribution": "à vérifier",
+      "usageApplication": "à vérifier",
+      "modification": "à vérifier"
+    },
+    "defi": {
+      "titre": "L’Œil de l’Ours : deux formes dans le paysage",
+      "consigne": "Une fois arrêté dans un endroit dont la sécurité a été vérifiée, repère deux formes différentes dans le paysage. Si tu le souhaites, garde une photo pour toi. Tu peux aussi simplement observer.",
+      "nature": "proposition éditoriale, non localisée",
+      "validationGPS": false,
+      "collectePhoto": false,
+      "publicationRequise": false
+    },
+    "integrationParcoursAutorisee": false
+  }
+}

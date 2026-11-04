@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#FFF9F3"><meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="robots" content="noindex, nofollow, noarchive">
+<meta name="googlebot" content="noindex, nofollow, noarchive">
+<meta name="description" content="Bear is BacK : balade familiale à pied sur la trace de Clisson.">
+<title>Bear is Back · Clisson · Carte de Clisson</title>
+<link rel="manifest" href="./manifest.webmanifest"><link rel="icon" href="./assets/brand/logo.jpg" type="image/jpeg">
+<link rel="apple-touch-icon" href="./assets/brand/logo.jpg">
+<link rel="stylesheet" href="./vendor/maplibre-gl.css"><link rel="stylesheet" href="./style.css">
+<script src="./loop-navigation.js"></script>
+<script src="./fiches-monuments.js" defer></script>
+<script src="./rallye-points.js" defer></script>
+<script src="./decouverte.js" defer></script>
+<script src="./nearby-me.js" defer></script>
+<script src="./places-map.js" defer></script>
+<script type="module" src="./navigation.js"></script>
+</head>
+<body class="navigator-page">
+<section id="welcome" aria-label="Bienvenue à Clisson">
+ <div class="cover-top"><span>AVENTURE À CLISSON</span></div>
+ <div class="cover-main">
+  <div class="cover-left">
+   <div class="cover-brand">
+    <img class="cover-logo" src="./assets/brand/logo.jpg" alt="Logo officiel Bear is BacK in Clisson" width="2048" height="2048">
+   </div>
+   <div class="cover-copy"><p class="eyebrow">ON PREND LE TEMPS ?</p><h2>Une ville,<br>son histoire,<br><em>ses commerçants.</em></h2><p>Une balade à partager, un carnet à remplir.<br>L’Ours ouvre la marche. À chacun ses découvertes.</p></div>
+   <div class="cover-actions"><button type="button" id="enter" class="primary" aria-label="Partir à l’aventure sur la carte">Partir à l’aventure <span>↗</span></button><div><button type="button" id="preview" disabled aria-label="Voir tout le parcours">Voir le parcours</button><button type="button" id="try-demo" aria-label="Découvrir en démonstration sans GPS" disabled>Mode démo</button></div><small>GPS à ta demande · Garde l’application visible pendant la marche.</small></div>
+  </div>
+  <figure class="cover-art" aria-label="Photographie de Clisson">
+   <img src="./assets/brand/clisson-sevre-photo-fournie.jpg" alt="Vue de Clisson sur la Sèvre, le pont et les maisons aux toits de tuiles" width="679" height="450">
+  </figure>
+ </div>
+</section>
+<a class="skip-link" href="#navigation">Aller aux commandes</a>
+<header class="map-header"><button type="button" id="home" aria-label="Revenir à l’accueil sans arrêter le suivi"><img src="./assets/brand/logo.jpg" alt="Bear is Back" width="48" height="48"></button><span>CLISSON<br><b>LA BALADE EN FAMILLE</b></span><button type="button" id="settings-open" aria-label="Ouvrir les réglages et informations">•••</button></header>
+<main>
+  <div class="instruction">
+   <div id="demo-banner" role="status" hidden>DÉMONSTRATION · GPS INACTIF</div>
+   <div id="off-alert" role="alert" hidden>⚠ HORS TRACE<br><small>Arrête-toi pour vérifier la carte.</small></div>
+
+   <h1 id="guidance" aria-live="polite">Chargement de la trace…</h1>
+   <p id="next-announcement">Prochaine annonce : —</p>
+   <p id="confidence">Navigation pédestre indicative</p>
+  </div>
+ <section class="map-area" aria-label="Navigation pédestre">
+  <div id="map" role="region" tabindex="0" aria-label="Carte interactive en perspective" aria-describedby="map-help"></div>
+
+  <div class="map-tools">
+   <button type="button" id="fit" aria-label="Vue d’ensemble, carte à plat vers le nord" disabled>Vue d’ensemble</button>
+   <button type="button" id="center" aria-label="Me suivre en perspective dans le sens de la trace" disabled>➤ Me suivre</button>
+  </div>
+  <div class="map-status"><span id="signal" role="status">GPS inactif</span><span>Trace terre cuite · progression encre</span></div>
+ </section>
+ <button aria-label="Ouvrir la liste du patrimoine et des commerces" id="places-toggle" class="places-toggle" type="button" aria-controls="places-panel" aria-expanded="false">◈ Patrimoine & commerces</button>
+ <aside id="places-panel" class="places-panel" aria-label="Sélectionner le patrimoine et les commerces à afficher sur la carte">
+  <div class="places-header">
+   <div><p class="eyebrow">CLISSON SUR LA CARTE</p><h2>Les lieux à découvrir</h2></div>
+   <button type="button" id="places-close" aria-label="Fermer la sélection des lieux">✕</button>
+  </div>
+  <p class="places-intro">Coche les lieux qui t'intéressent. Tu peux en afficher aucun, un seul ou tous à la fois. Le symbole ⌖ recentre la carte.</p>
+  <section class="nearby" aria-labelledby="nearby-title">
+   <h3 id="nearby-title" class="nearby-heading">Autour de moi</h3>
+   <button type="button" id="nearby-btn" class="nearby-btn" aria-describedby="nearby-help" aria-label="Autour de moi : demander ma position pour voir les lieux les plus proches">⌖ Autour de moi</button>
+   <p id="nearby-help" class="nearby-help">Ta position est demandée uniquement lorsque tu appuies ici. L’application ne la conserve pas et ne la transmet pas : elle sert seulement à estimer des distances à vol d’oiseau.</p>
+   <p id="nearby-status" class="places-status" role="status" aria-live="polite"></p>
+   <div id="nearby-results" class="nearby-results"></div>
+  </section>
+  <button type="button" id="places-fit" class="places-fit" aria-label="Cadrer la carte sur les lieux cochés">Voir mes lieux cochés</button>
+  <label class="places-filter-label" for="places-search">Rechercher un lieu</label>
+  <input aria-label="Rechercher un monument ou un commerce" id="places-search" type="search" placeholder="Un monument, une boutique…" autocomplete="off">
+  <details class="places-group" open>
+   <summary><span class="place-color-dot dot-gold" aria-hidden="true"></span><strong>Patrimoine <small class="places-color-word">OR</small></strong><span id="patrimoine-count">0 / 0</span></summary>
+   <div class="places-group-actions"><button type="button" id="places-patrimoine-all" aria-label="Afficher tout le patrimoine sur la carte">Tout cocher</button><button type="button" id="places-patrimoine-none" aria-label="Masquer tout le patrimoine sur la carte">Tout décocher</button></div>
+   <div id="patrimoine-list" class="places-items"></div>
+  </details>
+  <details class="places-group">
+   <summary><span class="place-color-dot dot-toscane" aria-hidden="true"></span><strong>Commerces <small class="places-color-word">TOSCANE</small></strong><span id="commerce-count">0 / 0</span></summary>
+   <div class="places-group-actions"><button type="button" id="places-commerce-all" aria-label="Afficher tous les commerces sur la carte">Tout cocher</button><button type="button" id="places-commerce-none" aria-label="Masquer tous les commerces sur la carte">Tout décocher</button></div>
+   <div id="commerce-list" class="places-items"></div>
+  </details>
+  <p class="places-status" id="places-status" role="status">Chargement des repères…</p>
+  <p class="places-status places-info" id="places-info" role="status" aria-live="polite">Gros cercle = plusieurs lieux : touche-le pour zoomer.</p>
+  <p class="places-source" id="places-source"><a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">© contributeurs OpenStreetMap · ODbL</a> <span id="places-source-note">Repères indicatifs, sans partenariat commercial.</span></p>
+ </aside>
+ <section class="dashboard" id="navigation" tabindex="-1" aria-label="Commandes et état du guidage">
+  <div class="journey"><strong>La Méditation de Papa Ours</strong><span id="total">—</span></div>
+  <div class="metrics"><span>Parcouru <b id="progress">—</b></span><span>Reste <b id="remaining">—</b></span><span>Écart <b id="offset">—</b></span><span>Précision <b id="accuracy">—</b></span></div>
+  <div class="progress-track"><div id="progressbar" role="progressbar" aria-label="Progression indicative sur la trace" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"></div></div>
+  <p id="entry-status" role="status">Départ libre sur la boucle</p><button type="button" id="confirm-entry" aria-label="Fixer mon km zéro ici et suivre le sens de la flèche" class="primary" hidden>Partir d’ici · dans ce sens ➤</button>
+  <div class="actions"><button type="button" id="toggle" class="primary" aria-label="Démarrer ou arrêter le GPS réel" aria-pressed="false" disabled>Démarrer le GPS</button><button type="button" id="demo" aria-label="Lancer une démonstration sans GPS" aria-pressed="false" disabled>Démo</button><button type="button" id="demo-pause" aria-label="Mettre en pause ou reprendre la démonstration" hidden>Pause</button><button type="button" id="demo-stop" aria-label="Arrêter la démonstration" hidden>Arrêter démo</button></div>
+  <div class="audio-controls"><button type="button" id="audio" aria-label="Activer ou couper les annonces vocales" aria-pressed="false">🔇 Annonces coupées</button>
+</div>
+ <div class="dock-links"><button type="button" id="rallye-open" aria-haspopup="dialog" aria-label="Ouvrir le carnet et le rallye photo">◉ Carnet de l’Ours</button><button type="button" id="spots-open" aria-label="Afficher les spots photo de la carte" aria-haspopup="dialog">📷 Spots photo</button><button type="button" id="more" aria-label="Ouvrir les réglages du guidage">Réglages</button></div>
+ </section>
+</main>
+<dialog id="spots" aria-labelledby="spots-title"><div class="sheet-title"><div><p class="eyebrow">UN AUTRE REGARD SUR LA BALADE</p><h2 id="spots-title">Spots photo</h2></div><button type="button" id="spots-close" aria-label="Fermer les spots photo">Fermer ✕</button></div><p id="spots-status" role="status">Le catalogue se prépare. Aucune épingle tant que les sources ne sont pas vérifiées.</p><div id="spots-list"></div><p class="rallye-note">Photographier reste facultatif. Retrouve l’appareil photo dans le Carnet de l’Ours.</p></dialog>
+<dialog id="settings" aria-labelledby="settings-title"><div class="sheet-title"><h2 id="settings-title">À ta main.</h2><button type="button" id="settings-close" aria-label="Fermer les réglages">Fermer ✕</button></div>  <button type="button" id="reset-gps" aria-label="Réinitialiser les distances et redémarrer une nouvelle session GPS" disabled>Réinitialiser le GPS</button>
+  <p>Le km 0 est ton point d’entrée confirmé, dans le sens de la trace. Ses extrémités sont disjointes : aucun raccord ni chemin de liaison calculé. Distances figées pendant une interruption. Réinitialiser efface la progression et attend une nouvelle position ; aucun choix de branche à un croisement.</p>
+<div class="audio-controls">  <button type="button" id="audio-test" aria-label="Tester le son en français après un clic explicite">Tester le son</button></div>
+  <p id="audio-status" role="status">Son selon Safari et volume · test disponible hors démo, application visible.</p>
+  <p class="safety">Garde l’application visible : GPS possiblement perdu si elle est masquée ou l’écran verrouillé. Alertes non garanties.</p>
+  <details><summary>Écran, carte et confidentialité</summary><button type="button" id="wake" aria-label="Tenter de garder l’écran allumé pendant le suivi GPS" aria-pressed="false">Maintien écran : désactivé</button><p id="wake-status" role="status">Option désactivée. Selon Safari et le système. Une PWA ne garantit ni GPS ni alerte en arrière-plan ou écran verrouillé. Son selon Safari et volume.</p><p id="connection" role="status">Vérification réseau…</p><p id="offline-status" role="status">Vérification de la coque hors ligne…</p><p id="map-help">Glisse pour explorer ; pince pour zoomer. « Me suivre » retrouve la perspective. Clavier : flèches et + / − dans la carte. La direction suit les segments de la trace, elle ne mesure pas ton orientation physique.</p><p>Aucune position GPS transmise par l’application. Le fournisseur reçoit les requêtes cartographiques et peut en déduire la zone consultée. Aucun routage, aucun détour. Distances indicatives. Fond cartographique disponible avec Internet ; hors ligne, seule la trace est affichée.</p></details>
+<details><summary>Installer sur mon téléphone</summary><p>iPhone : dans Safari, ouvre Partager puis « Sur l’écran d’accueil ». Android : dans Chrome, ouvre le menu puis « Installer l’application » ou « Ajouter à l’écran d’accueil », selon la version.</p><p>Première ouverture avec connexion nécessaire pour préparer le cache. Attends la confirmation de la coque hors ligne ci-dessus. Les rues du fond de carte ne sont pas conservées hors ligne ; la trace et la démo restent disponibles après mise en cache complète. Le GPS réel nécessite HTTPS ou localhost et ton autorisation.</p></details><nav class="sheet-links"><a href="./timeline.html">Voyage dans le temps ↗</a><a href="./aventures.html">Les aventures ↗</a></nav></dialog>
+<dialog id="monument-sheet" class="monument-sheet" aria-labelledby="monument-title">
+ <div class="sheet-title"><div><p class="eyebrow">PATRIMOINE · OR</p><h2 id="monument-title">Monument</h2></div><button type="button" id="monument-close" aria-label="Fermer la fiche du monument">✕</button></div>
+ <p id="monument-near" class="monument-near"></p>
+ <p id="monument-resume"></p>
+ <div id="monument-fait" class="monument-fait" hidden><p class="eyebrow">LE FAIT MARQUANT</p><p><strong id="monument-fait-date"></strong></p><p id="monument-fait-texte"></p></div>
+ <p id="monument-fait-absent" class="rallye-note" hidden>Le fait marquant de ce lieu reste à documenter avec une source fiable.</p>
+ <a id="monument-more" class="monument-more" href="https://fr.wikipedia.org/wiki/Clisson" target="_blank" rel="noopener noreferrer">En savoir plus ↗</a>
+ <p id="monument-source" class="rallye-note"></p>
+</dialog>
+<dialog id="rallye" aria-labelledby="rallye-title">
+ <div class="sheet-title"><div><p class="eyebrow">LE CARNET DE L’OURS</p><h2 id="rallye-title">Les histoires commencent ici.</h2></div><button type="button" id="rallye-close" aria-label="Fermer le carnet et retrouver la carte">✕</button></div>
+ <div class="carnet-journey">
+ <p class="rallye-intro">Photographie un monument.<br><strong>L’Ours te raconte son histoire.</strong></p>
+ <p>Un souvenir à garder, une histoire à partager en famille. Arrête-toi en sécurité avant de prendre une photo.</p>
+ <article class="observation-card"><p class="eyebrow">1 · TON REGARD</p>
+ <label class="photo-picker" for="rallye-photo">＋ Prendre ou choisir une photo <small>Facultatif · aucun envoi</small></label><input id="rallye-photo" type="file" accept="image/*">
+ <div id="photo-draft" hidden><img id="photo-preview" alt="Ta photo personnelle"><button id="photo-remove" type="button" aria-label="Effacer cette photo locale">Effacer cette photo</button></div><p id="photo-feedback" role="status" aria-live="polite"></p>
+ <p class="rallye-note">Tant que tu ne la gardes pas dans ton carnet, la photo reste uniquement dans cet onglet et disparaît au rechargement. Aucun lieu ni date déduit de l’image.</p></article>
+ <article class="culture-card"><p class="eyebrow">2 · À TOI DE CHOISIR</p><h3>Quel monument regardes-tu ?</h3>
+ <p>Choisis toi-même son nom. La photo et ta position GPS ne l’identifient pas.</p>
+ <label for="monument-choice">Monument à découvrir</label><select id="monument-choice" disabled><option value="">Choisir un monument…</option></select>
+ <div id="story-empty"><h3>L’Ours prépare ses histoires.</h3><p>Aucune fiche historique suffisamment sourcée n’est disponible dans cet atelier. Garde ta photo ici si tu veux, puis explore le voyage dans le temps ou reprends la balade.</p><a href="./timeline.html">Explorer l’histoire →</a></div>
+ <div id="story-card" hidden><p id="story-text"></p><p id="story-source"></p><p>Récit de la fiche choisie manuellement ; l’identité du monument photographié n’est pas vérifiée.</p><button type="button" id="story-play" aria-label="Écouter la fiche choisie" disabled>Écouter l’histoire</button><button type="button" id="story-stop" aria-label="Arrêter la lecture du récit" disabled>Arrêter la lecture</button></div><p id="story-voice-note" class="rallye-note"></p></article>
+ <article class="souvenir-card" aria-labelledby="souvenir-title"><p class="eyebrow">3 · TON SOUVENIR</p><h3 id="souvenir-title">Garder ce moment dans ton carnet</h3>
+ <p>Facultatif. Le souvenir reste sur cet appareil : ni compte, ni envoi, ni position GPS. La date notée est celle de l’enregistrement.</p>
+ <label for="souvenir-legend">Ta légende <small id="souvenir-count" aria-live="off">0 / 280</small></label><textarea id="souvenir-legend" maxlength="280" rows="3" placeholder="Ce qu’on a vu, ressenti, raconté…"></textarea>
+ <p id="souvenir-photo-note" class="rallye-note">Aucune photo : le souvenir sera gardé avec sa légende seule.</p>
+ <button type="button" id="souvenir-save" class="primary" aria-label="Garder ce souvenir sur cet appareil" disabled>Garder dans mon carnet</button>
+ <p id="souvenir-status" role="status" aria-live="polite"></p>
+ <h3>Mes souvenirs</h3><p id="souvenir-empty">Aucun souvenir gardé pour le moment.</p><ul id="souvenir-list" class="souvenir-list"></ul>
+ <div class="souvenir-tools"><button type="button" id="souvenir-export" aria-label="Exporter tout le carnet dans un fichier sur cet appareil" disabled>Exporter mon carnet</button><button type="button" id="souvenir-clear" aria-label="Effacer définitivement tous les souvenirs de cet appareil" disabled>Tout effacer</button></div>
+ <p id="souvenir-usage" class="rallye-note"></p>
+ <p class="rallye-note">Sur iPhone, Safari peut effacer les données d’un site resté longtemps sans visite, et l’effacement de l’historique les supprime aussi. Exporte ton carnet pour le garder durablement.</p></article>
+ <p class="rallye-note">Continue la balade avec ou sans photo : le guidage et la progression GPS restent indépendants du carnet.</p>
+ </div>
+ <article class="oursons-card" aria-labelledby="oursons-title"><p class="eyebrow">LES OURSONS DE CLISSON</p><h3 id="oursons-title">Mes oursons</h3>
+ <p>Quatorze oursons virtuels se cachent le long de la boucle, environ un par kilomètre. Avec « Démarrer le GPS », approche-toi des traces 🐾 sur la carte : à moins de 35 m, l’ourson 🧸 apparaît, touche-le pour l’attraper. Arrête-toi en sécurité, regarde autour de toi, pas seulement l’écran.</p>
+ <p id="oursons-count" role="status">0 / 14 oursons attrapés</p><ul id="oursons-list" class="oursons-list"></ul></article>
+ <details class="orga-tools"><summary>Organisateur : placer les points du rallye photo</summary>
+ <p>Réservé à l’organisation. Les points restent sur cet appareil jusqu’à leur export, puis leur intégration dans l’application.</p>
+ <button type="button" id="orga-toggle" aria-pressed="false" aria-label="Activer ou désactiver le mode organisateur pour placer des points sur la carte">Mode organisateur : désactivé</button>
+ <button type="button" id="orga-here" aria-label="Créer un point du rallye à ma position GPS actuelle">Ici (GPS)</button>
+ <p id="orga-status" role="status" aria-live="polite"></p>
+ <div id="orga-form" class="orga-form" hidden><p id="orga-where"></p>
+ <label for="orga-nom">Nom du point</label><input id="orga-nom" type="text" maxlength="80" autocomplete="off">
+ <label for="orga-defi">Défi photo</label><textarea id="orga-defi" maxlength="240" rows="3" placeholder="Ex. : photographie le reflet du château dans la Sèvre"></textarea>
+ <button type="button" id="orga-save" class="primary" aria-label="Enregistrer ce point du rallye sur cet appareil">Enregistrer le point</button><button type="button" id="orga-cancel" aria-label="Abandonner ce point">Annuler</button></div>
+ <p id="orga-count"></p><ul id="orga-list" class="orga-list"></ul>
+ <button type="button" id="orga-export" aria-label="Exporter les points du rallye dans un fichier" disabled>Exporter les points</button></details>
+ <details><summary>Étapes sur le parcours</summary><p id="rallye-availability">Aucun point culturel vérifié disponible pour le moment.</p><div id="culture-stages"></div><p id="rallye-status" role="status" aria-live="polite">Aucune étape culturelle validée.</p></details>
+</dialog>
+<script type="module" src="./rallye.mjs"></script><script type="module" src="./carnet-souvenirs.mjs"></script>
+<dialog id="partners" aria-labelledby="partners-title">
+ <div class="sheet-title"><div><p class="eyebrow">Une ville, son histoire, ses commerçants.</p><h2 id="partners-title">Bons plans de nos commerçants partenaires</h2></div><button type="button" id="partners-close" aria-label="Fermer les bons plans">✕</button></div>
+ <p class="partner-lead">Une pause sur le chemin. Des adresses à découvrir, quand les accords seront confirmés.</p>
+ <div id="partner-offers" class="partner-offers"></div>
+ <div id="partner-empty" class="partner-empty"><span class="partner-symbol" aria-hidden="true">♡</span><span class="eyebrow">Les rencontres se préparent</span><h3>La balade a déjà beaucoup à offrir.</h3><p>Pour les bons plans, encore un peu de patience : aucune offre ni aucun partenariat confirmé pour le moment.</p><p>Tu trouveras ici les offres avec l’accord du commerçant, leurs conditions et leurs dates de validité.</p><button type="button" id="partners-route" aria-label="Revenir au parcours">Continuer la balade →</button></div>
+ <template id="partner-prospect-internal"><article class="partner-intent"><p class="eyebrow">CONTACT ENVISAGÉ · SANS ACCORD</p><h3>Échoppe des Légendes</h3><p>Partenaire envisagé uniquement. Aucun accord, offre, adresse ou accès depuis la trace n’est présenté ici.</p></article></template>
+ <template id="offer-workshop-internal"><details class="offer-workshop"><summary>Atelier d’offre · maquette locale</summary><p>Prépare un brouillon sur cet appareil. Rien n’est envoyé ni publié. Ce formulaire n’est pas un espace partenaire authentifié.</p>
+ <form id="offer-form"><label>Intitulé du brouillon<input id="offer-title" maxlength="90" required placeholder="À renseigner par le partenaire"></label><label>Description<textarea id="offer-description" maxlength="600" rows="4" required placeholder="Conditions à définir après accord"></textarea></label><button class="primary" type="submit" aria-label="Prévisualiser le brouillon local">Prévisualiser localement</button><button id="offer-clear" type="button" aria-label="Effacer le brouillon local">Effacer le brouillon</button></form>
+ <article id="offer-preview" hidden><p class="eyebrow">BROUILLON LOCAL · NON PUBLIÉ</p><h3 id="offer-preview-title"></h3><p id="offer-preview-description"></p></article><p id="offer-status" role="status">Brouillon en mémoire uniquement, perdu au rechargement.</p>
+ <p class="server-note">Pour ouvrir une vraie gestion partenaire : serveur, authentification, rôles, preuve d’accord, validation des offres et règles de confidentialité restent nécessaires.</p></details></template>
+</dialog>
+<p id="decouverte-toast" class="decouverte-toast" role="status" aria-live="polite" hidden></p>
+<nav class="app-nav" aria-label="Navigation principale"><button type="button" id="nav-home" aria-label="Afficher l’accueil">Accueil</button><button type="button" id="nav-route" aria-label="Afficher le parcours">Parcours</button><button type="button" id="nav-book" aria-label="Afficher le carnet">Carnet</button><button type="button" id="nav-partners" aria-label="Afficher les bons plans">Bons plans</button></nav>
+<script type="module" src="./partner-offers.mjs"></script>
+<script src="./photo-spots.js" defer></script><script src="./interface-v7.js" defer></script><script src="./partners-v7.js" defer></script>
+<noscript>JavaScript est nécessaire pour charger la trace et la carte.</noscript>
+</body>
+</html>
