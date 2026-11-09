@@ -119,6 +119,7 @@
     // ---- Fiche monument ----
     function openFiche(id){
       const p=byId.get(id),sheet=el('monument-sheet');if(!p||!sheet)return false;
+      if(sheet.dataset)sheet.dataset.monumentId=id;
       const f=fiches?.fiches?.[id]||null;
       el('monument-title').textContent=p.name;
       el('monument-near').textContent=near.has(id)?'✨ Tu es tout près de ce monument.':'Un monument de Clisson à découvrir.';

@@ -1,6 +1,6 @@
-// Carnet de l'Ours V12 : souvenirs choisis volontairement, gardés sur cet appareil seulement.
+// Souvenirs de monuments (V15, depuis la fiche monument) : gardés sur cet appareil seulement.
 // Aucun envoi réseau, aucune analyse d'image, aucune position GPS : légende, photo originale
-// facultative, date d'enregistrement et monument choisi à la main parmi des fiches sourcées.
+// facultative, date d'enregistrement et monument touché sur la carte.
 export const LIMITS = Object.freeze({legend: 280, photoBytes: 20 * 1024 * 1024, count: 60});
 export const DB_NAME = 'bear-carnet-ours', STORE = 'souvenirs', DB_VERSION = 1;
 const DISPLAYABLE = /^image\/(?:jpeg|png|webp|gif|heic|heif|avif)$/;
@@ -188,9 +188,10 @@ export function mountSouvenirs(doc, win = window, openStore = () => openIdbStore
   finally { busy = false; }
   await refresh();
  }
+ // Le monument est celui touché sur la carte (fiche ouverte), jamais reconnu sur la photo.
  const chosenMonument = () => {
-  const select = el('monument-choice');
-  return select?.value ? {id: select.value, title: select.selectedOptions?.[0]?.textContent || select.value} : null;
+  const id = el('monument-sheet')?.dataset?.monumentId;
+  return id ? {id, title: el('monument-title')?.textContent || id} : null;
  };
  el('souvenir-legend').oninput = sync;
  doc.addEventListener('carnet:photo', event => { photo = event.detail?.file || null; sync(); });

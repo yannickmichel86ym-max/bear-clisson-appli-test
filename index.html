@@ -19,28 +19,32 @@
 <script src="./immersion.js" defer></script>
 <script src="./rencontre.js" defer></script>
 <script src="./decouverte.js" defer></script>
+<script src="./accueil.js" defer></script>
 <script src="./nearby-me.js" defer></script>
 <script src="./places-map.js" defer></script>
 <script type="module" src="./navigation.js"></script>
 </head>
 <body class="navigator-page">
-<section id="welcome" aria-label="Bienvenue à Clisson">
+<section id="welcome" aria-label="Accueil : choisis ton ours">
+ <figure class="cover-art"><img src="./assets/brand/clisson-sevre-photo-fournie.jpg" alt="Vue de Clisson sur la Sèvre, le pont et les maisons aux toits de tuiles" width="679" height="450"></figure>
  <div class="cover-top"><span>AVENTURE À CLISSON</span></div>
  <div class="cover-main">
   <div class="cover-left">
    <div class="cover-brand">
-    <img class="cover-logo" src="./assets/brand/logo.jpg" alt="Logo officiel Bear is BacK in Clisson" width="2048" height="2048">
+    <img class="cover-logo" src="./assets/brand/logo-detoure.png" alt="Logo officiel Bear is BacK in Clisson" width="1024" height="1024">
    </div>
-   <div class="cover-copy"><p class="eyebrow">ON PREND LE TEMPS ?</p><h2>Une ville,<br>son histoire,<br><em>ses commerçants.</em></h2><p>Une balade à partager, un carnet à remplir.<br>L’Ours ouvre la marche. À chacun ses découvertes.</p></div>
+   <div class="cover-copy"><p class="eyebrow">14 OURSONS À RENCONTRER</p><h2>Choisis ton ours</h2><p id="ours-progress" role="status" aria-live="polite">0 / 14 oursons rencontrés</p><div class="ours-meter" aria-hidden="true"><span></span></div></div>
    <div class="cover-actions"><button type="button" id="enter" class="primary" aria-label="Partir à l’aventure sur la carte">Partir à l’aventure <span>↗</span></button><div><button type="button" id="preview" disabled aria-label="Voir tout le parcours">Voir le parcours</button><button type="button" id="try-demo" aria-label="Découvrir en démonstration sans GPS" disabled>Mode démo</button></div><small>GPS à ta demande · Garde l’application visible pendant la marche.</small></div>
   </div>
-  <figure class="cover-art" aria-label="Photographie de Clisson">
-   <img src="./assets/brand/clisson-sevre-photo-fournie.jpg" alt="Vue de Clisson sur la Sèvre, le pont et les maisons aux toits de tuiles" width="679" height="450">
-  </figure>
+  <section class="ours-board" aria-labelledby="ours-board-title">
+   <p class="eyebrow" id="ours-board-title">LA GALERIE</p>
+   <p id="ours-hint" role="status" aria-live="polite">Touche un ours pour voir qui il est. Les autres se cachent sur le chemin.</p>
+   <ul id="ours-grid" class="ours-grid" aria-label="Les quatorze oursons de Clisson"></ul>
+  </section>
  </div>
 </section>
 <a class="skip-link" href="#navigation">Aller aux commandes</a>
-<header class="map-header"><button type="button" id="home" aria-label="Revenir à l’accueil sans arrêter le suivi"><img src="./assets/brand/logo.jpg" alt="Bear is Back" width="48" height="48"></button><span>CLISSON<br><b>LA BALADE EN FAMILLE</b></span><button type="button" id="settings-open" aria-label="Ouvrir les réglages et informations">•••</button></header>
+<header class="map-header"><button type="button" id="home" aria-label="Revenir à l’accueil sans arrêter le suivi"><img src="./assets/brand/logo-detoure.png" alt="Bear is Back" width="48" height="48"></button><span>CLISSON<br><b>LA BALADE EN FAMILLE</b></span><button type="button" id="settings-open" aria-label="Ouvrir les réglages et informations">•••</button></header>
 <main>
   <div class="instruction">
    <div id="demo-banner" role="status" hidden>DÉMONSTRATION · GPS INACTIF</div>
@@ -117,6 +121,19 @@
  <p id="monument-fait-absent" class="rallye-note" hidden>Le fait marquant de ce lieu reste à documenter avec une source fiable.</p>
  <a id="monument-more" class="monument-more" href="https://fr.wikipedia.org/wiki/Clisson" target="_blank" rel="noopener noreferrer">En savoir plus ↗</a>
  <p id="monument-source" class="rallye-note"></p>
+<section class="monument-souvenir" aria-labelledby="souvenir-title"><p class="eyebrow">TON REGARD</p><h3 id="souvenir-title">Garder ce monument dans ton carnet</h3>
+ <p class="rallye-note">Facultatif. Le souvenir reste sur cet appareil : ni compte, ni envoi, ni position GPS. Il porte le nom du monument que tu as touché sur la carte. La photo n’est pas reconnue.</p>
+ <label class="photo-picker" for="rallye-photo">＋ Prendre ou choisir une photo <small>Facultatif · aucun envoi</small></label><input id="rallye-photo" type="file" accept="image/*">
+ <div id="photo-draft" hidden><img id="photo-preview" alt="Ta photo personnelle"><button id="photo-remove" type="button" aria-label="Effacer cette photo locale">Effacer cette photo</button></div><p id="photo-feedback" role="status" aria-live="polite"></p>
+ <label for="souvenir-legend">Ta légende <small id="souvenir-count" aria-live="off">0 / 280</small></label><textarea id="souvenir-legend" maxlength="280" rows="3" placeholder="Ce qu’on a vu, ressenti, raconté…"></textarea>
+ <p id="souvenir-photo-note" class="rallye-note">Aucune photo : le souvenir sera gardé avec sa légende seule.</p>
+ <button type="button" id="souvenir-save" class="primary" aria-label="Garder ce souvenir sur cet appareil" disabled>Garder dans mon carnet</button>
+ <p id="souvenir-status" role="status" aria-live="polite"></p>
+ <details class="souvenir-details"><summary>Mes souvenirs gardés sur cet appareil</summary>
+ <p id="souvenir-empty">Aucun souvenir gardé pour le moment.</p><ul id="souvenir-list" class="souvenir-list"></ul>
+ <div class="souvenir-tools"><button type="button" id="souvenir-export" aria-label="Exporter tout le carnet dans un fichier sur cet appareil" disabled>Exporter mon carnet</button><button type="button" id="souvenir-clear" aria-label="Effacer définitivement tous les souvenirs de cet appareil" disabled>Tout effacer</button></div>
+ <p id="souvenir-usage" class="rallye-note"></p>
+ <p class="rallye-note">Sur iPhone, Safari peut effacer les données d’un site resté longtemps sans visite, et l’effacement de l’historique les supprime aussi. Exporte ton carnet pour le garder durablement.</p></details></section>
 </dialog>
 <dialog id="rencontre" class="rencontre-sheet" aria-labelledby="rencontre-title">
  <div class="sheet-title"><div><p class="eyebrow">RENCONTRE</p><h2 id="rencontre-title">Ourson</h2></div><button type="button" id="rencontre-leave" aria-label="Quitter la rencontre et laisser l’ours tranquille">Laisser tranquille</button></div>
@@ -127,30 +144,6 @@
 </dialog>
 <dialog id="rallye" aria-labelledby="rallye-title">
  <div class="sheet-title"><div><p class="eyebrow">LE CARNET DE L’OURS</p><h2 id="rallye-title">À la rencontre des Ours protecteurs de Clisson</h2></div><button type="button" id="rallye-close" aria-label="Fermer le carnet et retrouver la carte">✕</button></div>
- <div class="carnet-journey">
- <p class="rallye-intro">Photographie un monument.<br><strong>L’Ours te raconte son histoire.</strong></p>
- <p>Un souvenir à garder, une histoire à partager en famille. Arrête-toi en sécurité avant de prendre une photo.</p>
- <article class="observation-card"><p class="eyebrow">1 · TON REGARD</p>
- <label class="photo-picker" for="rallye-photo">＋ Prendre ou choisir une photo <small>Facultatif · aucun envoi</small></label><input id="rallye-photo" type="file" accept="image/*">
- <div id="photo-draft" hidden><img id="photo-preview" alt="Ta photo personnelle"><button id="photo-remove" type="button" aria-label="Effacer cette photo locale">Effacer cette photo</button></div><p id="photo-feedback" role="status" aria-live="polite"></p>
- <p class="rallye-note">Tant que tu ne la gardes pas dans ton carnet, la photo reste uniquement dans cet onglet et disparaît au rechargement. Aucun lieu ni date déduit de l’image.</p></article>
- <article class="culture-card"><p class="eyebrow">2 · À TOI DE CHOISIR</p><h3>Quel monument regardes-tu ?</h3>
- <p>Choisis toi-même son nom. La photo et ta position GPS ne l’identifient pas.</p>
- <label for="monument-choice">Monument à découvrir</label><select id="monument-choice" disabled><option value="">Choisir un monument…</option></select>
- <div id="story-empty"><h3>L’Ours prépare ses histoires.</h3><p>Aucune fiche historique suffisamment sourcée n’est disponible dans cet atelier. Garde ta photo ici si tu veux, puis explore le voyage dans le temps ou reprends la balade.</p><a href="./timeline.html">Explorer l’histoire →</a></div>
- <div id="story-card" hidden><p id="story-text"></p><p id="story-source"></p><p>Récit de la fiche choisie manuellement ; l’identité du monument photographié n’est pas vérifiée.</p><button type="button" id="story-play" aria-label="Écouter la fiche choisie" disabled>Écouter l’histoire</button><button type="button" id="story-stop" aria-label="Arrêter la lecture du récit" disabled>Arrêter la lecture</button></div><p id="story-voice-note" class="rallye-note"></p></article>
- <article class="souvenir-card" aria-labelledby="souvenir-title"><p class="eyebrow">3 · TON SOUVENIR</p><h3 id="souvenir-title">Garder ce moment dans ton carnet</h3>
- <p>Facultatif. Le souvenir reste sur cet appareil : ni compte, ni envoi, ni position GPS. La date notée est celle de l’enregistrement.</p>
- <label for="souvenir-legend">Ta légende <small id="souvenir-count" aria-live="off">0 / 280</small></label><textarea id="souvenir-legend" maxlength="280" rows="3" placeholder="Ce qu’on a vu, ressenti, raconté…"></textarea>
- <p id="souvenir-photo-note" class="rallye-note">Aucune photo : le souvenir sera gardé avec sa légende seule.</p>
- <button type="button" id="souvenir-save" class="primary" aria-label="Garder ce souvenir sur cet appareil" disabled>Garder dans mon carnet</button>
- <p id="souvenir-status" role="status" aria-live="polite"></p>
- <h3>Mes souvenirs</h3><p id="souvenir-empty">Aucun souvenir gardé pour le moment.</p><ul id="souvenir-list" class="souvenir-list"></ul>
- <div class="souvenir-tools"><button type="button" id="souvenir-export" aria-label="Exporter tout le carnet dans un fichier sur cet appareil" disabled>Exporter mon carnet</button><button type="button" id="souvenir-clear" aria-label="Effacer définitivement tous les souvenirs de cet appareil" disabled>Tout effacer</button></div>
- <p id="souvenir-usage" class="rallye-note"></p>
- <p class="rallye-note">Sur iPhone, Safari peut effacer les données d’un site resté longtemps sans visite, et l’effacement de l’historique les supprime aussi. Exporte ton carnet pour le garder durablement.</p></article>
- <p class="rallye-note">Continue la balade avec ou sans photo : le guidage et la progression GPS restent indépendants du carnet.</p>
- </div>
  <article class="oursons-card" aria-labelledby="oursons-title"><p class="eyebrow">LES OURSONS DE CLISSON</p><h3 id="oursons-title">Mes oursons</h3>
  <p>Quatorze oursons se cachent sur le chemin. Lance ta balade et suis les traces 🐾 : quand un ours est tout près, il apparaît. Touche-le pour faire sa connaissance. Arrête-toi en sécurité, regarde autour de toi, pas seulement l’écran.</p>
  <p id="oursons-count" role="status">0 / 14 oursons rencontrés</p>

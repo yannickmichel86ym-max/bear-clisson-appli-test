@@ -248,3 +248,88 @@ body.sun-mode .place-map-pin{border-width:4px;box-shadow:0 0 0 3px #FFF9F3,0 6px
 #rencontre-status{font-weight:650;min-height:3em}
 .rencontre-sheet .sheet-title button{min-height:48px}
 .pokedex-photo img{border-radius:14px}
+
+/* V16 · Accueil « Choisis ton ours » : charte de Clisson (tuile, ciel, Sèvre, vigne, pierre). */
+:root{--tile-deep:#B05A3A;--sky-soft:#DDF0FC;--vine-soft:#E4EEDC}
+#welcome{background:var(--paper);color:var(--ink)}
+#welcome>.cover-art{position:absolute;inset:0 0 auto 0;height:44vh;min-height:230px;margin:0;border:0;border-radius:0 0 36px 36px;overflow:hidden;opacity:1;z-index:0;pointer-events:none}
+#welcome>.cover-art::after{content:none}
+#welcome>.cover-art img{width:100%;height:100%;object-fit:cover;display:block;-webkit-mask-image:linear-gradient(180deg,#000 62%,transparent 100%);mask-image:linear-gradient(180deg,#000 62%,transparent 100%)}
+#welcome>*:not(.cover-art){position:relative;z-index:1}
+#welcome .cover-top{margin-bottom:6px}
+#welcome .cover-top span{background:var(--tile);color:#fff;border-radius:999px;padding:7px 14px;font-size:11px;letter-spacing:.1em;font-weight:800}
+#welcome .cover-main{display:flex;flex-direction:column;gap:18px;min-height:0;padding-top:calc(max(230px,44vh) - 74px)}
+#welcome .cover-left{gap:14px;align-items:center;text-align:center}
+#welcome .cover-brand{min-height:0;max-height:none;height:auto;display:flex;justify-content:center}
+#welcome .cover-logo{width:132px;height:132px;max-height:none;max-width:none;margin:0 auto;filter:drop-shadow(0 10px 18px rgba(47,42,38,.22));animation:bob 3.2s ease-in-out infinite}
+#welcome .cover-copy{width:100%}
+#welcome .cover-copy .eyebrow{color:var(--tile);font-weight:800;letter-spacing:.12em;margin:0 0 6px}
+#welcome .cover-copy h2{font-family:system-ui,-apple-system,"Segoe UI",sans-serif;font-weight:800;font-size:clamp(34px,9vw,54px);color:var(--ink);letter-spacing:-.03em;line-height:1;margin:0 0 10px}
+#welcome .cover-copy p:not(.eyebrow){color:var(--ink);opacity:.8;font-size:15px;font-weight:600;margin:0}
+.ours-meter{height:10px;border-radius:999px;background:var(--stone);margin:12px auto 0;max-width:320px;overflow:hidden}
+.ours-meter span{display:block;height:100%;width:0;border-radius:999px;background:linear-gradient(90deg,var(--river),var(--sky));transition:width .8s cubic-bezier(.2,.8,.2,1)}
+#welcome .cover-actions{width:100%;display:flex;flex-direction:column;gap:10px}
+#welcome .cover-actions>.primary{min-height:58px;background:var(--tile);color:#fff;border:0;border-radius:20px;font-size:17px;font-weight:800;box-shadow:0 10px 22px rgba(201,110,75,.35)}
+#welcome .cover-actions>.primary:active{transform:translateY(2px)}
+#welcome .cover-actions>div{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+#welcome .cover-actions>div button{background:#fff;color:var(--ink);border:0;border-radius:18px;font-weight:700;box-shadow:0 4px 12px rgba(47,42,38,.08)}
+#welcome .cover-actions small{color:var(--ink);opacity:.7}
+.ours-board{display:flex;flex-direction:column;gap:10px;min-width:0}
+.ours-board .eyebrow{color:var(--river);font-weight:800;letter-spacing:.12em;margin:0}
+#ours-hint{margin:0;font-size:14px;color:var(--ink);opacity:.8;min-height:2.6em;font-weight:600}
+.ours-grid{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.ours-grid li{min-width:0;animation:rise .55s cubic-bezier(.2,.8,.2,1) both;animation-delay:calc(var(--i,0)*45ms)}
+.ours-card{width:100%;min-height:124px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:12px 6px;border-radius:24px;border:0;background:#fff;color:var(--ink);box-shadow:0 10px 24px rgba(47,42,38,.08);cursor:pointer;transition:transform .2s ease}
+.ours-card:active{transform:scale(.97)}
+.ours-card.is-met{background:linear-gradient(160deg,#fff,var(--vine-soft));box-shadow:0 10px 24px rgba(127,163,106,.3)}
+.ours-card.is-hidden{background:var(--sky-soft);box-shadow:none}
+.ours-num{font-size:11px;font-weight:800;letter-spacing:.06em;color:var(--river)}
+.ours-face{width:58px;height:58px;border-radius:50%;display:grid;place-items:center;font-size:24px;font-weight:800;background:#fff;color:var(--river);overflow:hidden}
+.ours-card.is-met .ours-face{background:var(--vine);color:#fff;box-shadow:0 0 0 5px rgba(127,163,106,.22);animation:glow 2.6s ease-in-out infinite}
+.ours-face img{width:100%;height:100%;object-fit:contain}
+.ours-name{font-weight:800;font-size:14px;letter-spacing:.02em}
+@keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+@keyframes rise{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+@keyframes glow{0%,100%{box-shadow:0 0 0 5px rgba(127,163,106,.22)}50%{box-shadow:0 0 0 10px rgba(127,163,106,.05)}}
+@media(prefers-reduced-motion:reduce){#welcome .cover-logo,.ours-card.is-met .ours-face{animation:none}.ours-grid li{animation:none}}
+@media(min-width:850px){#welcome .cover-main{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.3fr);gap:clamp(24px,4vw,64px);align-items:start;padding-top:calc(38vh - 74px)}#welcome>.cover-art{height:38vh}.ours-grid{grid-template-columns:repeat(4,minmax(0,1fr))}}
+.monument-souvenir{margin-top:16px;border-top:1px solid var(--ink);padding-top:14px}
+.monument-souvenir h3{margin:4px 0 8px;font-size:22px;line-height:1.15}
+.souvenir-details{margin-top:12px}
+.souvenir-details>summary{cursor:pointer;font-weight:800;min-height:48px;display:flex;align-items:center}
+
+/* V16 · Charte Clisson sur toute l'appli : tuile, ciel, Sèvre, vigne, pierre. Plus de contours noirs épais. */
+:root{--card:#FFFFFF;--line:#EADCC8;--shadow:0 10px 24px rgba(47,42,38,.08);--radius:22px}
+body{background:var(--paper);color:var(--ink)}
+h1,h2,h3,h4{font-family:system-ui,-apple-system,"Segoe UI",sans-serif;letter-spacing:-.02em;color:var(--ink)}
+h2{font-weight:800}
+.eyebrow{color:var(--river);font-weight:800;letter-spacing:.12em}
+button{border:0;border-radius:16px;background:var(--card);color:var(--ink);box-shadow:0 4px 12px rgba(47,42,38,.08);font-weight:700}
+button:active{transform:translateY(1px)}
+button:disabled{opacity:.5;box-shadow:none}
+button.primary,.primary{background:var(--tile)!important;color:#fff!important;box-shadow:0 8px 18px rgba(201,110,75,.3)}
+:focus-visible{outline:3px solid var(--river);outline-offset:2px}
+dialog{background:var(--paper);border:0;border-radius:30px 30px 0 0;box-shadow:0 -12px 40px rgba(47,42,38,.18)}
+dialog::backdrop{background:rgba(47,42,38,.35)}
+.sheet-title button{box-shadow:none;background:var(--stone);min-width:48px}
+.app-nav{background:rgba(255,255,255,.96);border-top:0;box-shadow:0 -8px 24px rgba(47,42,38,.08);backdrop-filter:blur(10px)}
+.app-nav button{background:transparent;box-shadow:none;color:var(--ink);border-radius:14px}
+.app-nav button[aria-current],.app-nav button.is-active{background:var(--sky-soft);color:var(--river)}
+.map-header{background:rgba(255,249,243,.94);border-bottom:0;box-shadow:0 4px 18px rgba(47,42,38,.08);backdrop-filter:blur(10px)}
+.map-header button{background:transparent;box-shadow:none;padding:0;min-height:48px}
+.map-header img{border-radius:12px;width:44px;height:44px;object-fit:contain}
+.map-tools button,.dashboard button{box-shadow:0 6px 16px rgba(47,42,38,.14)}
+.dashboard{background:var(--card);border:0;border-radius:var(--radius);box-shadow:var(--shadow)}
+input,textarea,select{border:1px solid var(--line);border-radius:14px;background:#fff;color:var(--ink);padding:10px 12px}
+label{font-weight:600}
+article,.photo-picker,.souvenir-card,.observation-card,.culture-card,.oursons-card,.monument-souvenir,.monument-fait,.partner-empty{border:0;border-radius:var(--radius)}
+article,.observation-card,.culture-card,.oursons-card,.souvenir-card,.partner-empty{background:var(--card);box-shadow:var(--shadow);padding:18px}
+.monument-souvenir{border-top:0;padding-top:0}
+.monument-fait{background:var(--sky-soft);padding:14px 16px}
+.photo-picker{background:var(--sky-soft);color:var(--river);border:2px dashed #9CC9E8;border-radius:22px;font-weight:800}
+.monument-more,.monument-more:visited{color:var(--river);font-weight:800}
+.rallye-note{color:var(--ink);opacity:.72}
+.ours-card{border:0}
+a{color:var(--river)}
+.toast,#decouverte-toast{background:var(--ink);color:#fff;border-radius:18px;box-shadow:0 10px 24px rgba(47,42,38,.25)}
+#monument-sheet h2,#rallye h2,#rencontre h2{font-size:clamp(26px,6vw,34px)}
