@@ -99,7 +99,8 @@ function camera(point,course,duration=650){
  const dock=$('navigation').getBoundingClientRect?.();
  const rect=map.getContainer().getBoundingClientRect?.();
  const offset=dock&&rect?Math.max(-height*.1,Math.min(height*.19,dock.top-rect.top-72-height/2)):height*.19;
- map.easeTo({center:[point[1],point[0]],zoom:17.3,pitch:58,bearing:course,
+ const view=window.BearImmersion?.camera?.()||{zoom:17.3,pitch:58};
+ map.easeTo({center:[point[1],point[0]],zoom:view.zoom,pitch:view.pitch,bearing:course,
    offset:[0,offset],duration,essential:false});
 }
 function positionMarker(point,reliable,course=0){

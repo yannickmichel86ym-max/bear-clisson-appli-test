@@ -10,24 +10,24 @@
   const NEAR_M=40, LEAVE_M=70, MAX_ACCURACY_M=30, MAX_AGE_MS=15000, BEAR_M=35, POLL_MS=2000;
   const BEARS_KEY='bear-oursons-v1', RALLY_KEY='bear-rallye-points-v1';
   const BOX={minLat:46.95,maxLat:47.25,minLon:-1.5,maxLon:-1.05};
-  // 14 oursons, placés au plus près d’un lieu pertinent, sur un point réel de data/parcours.json (index « i »),
-  // à au moins 100 m les uns des autres. Anecdote affichée seulement si le lien historique est sourcé (champ « appui »).
+  // 14 oursons, espacés d’au moins 500 m le long du parcours (ordre du parcours). Chacun sur un point réel de data/parcours.json (index « i »).
+  // Récit court pour les enfants, lu par les parents. Anecdote historique seulement si le lien est sourcé (champ « appui »).
   const B=(id,nom,km,i,latitude,longitude,indice,appui,source)=>Object.freeze({id,nom,km,i,latitude,longitude,indice,appui:appui||null,source:source||null});
   const BEARS=Object.freeze([
-    B('ourson-darnel','DARNEL',0.53,64,47.088617,-1.284423,'Comme le sénéchal Pierre-Marie Darnel, qui présida en 1789, à l’église Saint-Jacques, la rédaction du cahier de doléances.','Sous la présidence du sénéchal Pierre-Marie Darnel','sources/wikipedia/Église_Saint-Jacques_de_Clisson.txt'),
-    B('ourson-barthy','BARTHY',1.53,213,47.087848,-1.278017,'Comme Barthélemy Lemot, fils du sculpteur, plusieurs fois maire de Clisson jusqu’en 1881.','devient plusieurs fois maire de la ville jusqu\'en 1881','sources/wikipedia/Domaine_de_la_Garenne_Lemot.txt'),
-    B('ourson-valentin','VALENTIN',1.67,231,47.087894,-1.276684,'Comme le négociant Jacques-Charles Valentin, ami de Lemot, qui s’installa dans l’ancien couvent des Bénédictines de la Trinité.','Le négociant Jacques-Charles Valentin, amis de Lemot, installe sa résidence dans l\'ancien couvent des Bénédictines de la Trinité','sources/wikipedia/Domaine_de_la_Garenne_Lemot.txt'),
-    B('ourson-lemot','LEMOT',3.53,457,47.084745,-1.273551,'Comme le sculpteur François-Frédéric Lemot, qui acquit la Garenne en 1805 et la transforma en parc à l’italienne.','acquiert cette propriété de la Garenne dès le 26 juin 1805','sources/wikipedia/Domaine_de_la_Garenne_Lemot.txt'),
-    B('ourson-cleemputte','CLEEMPUTTE',3.82,493,47.084957,-1.276075,'Comme l’architecte Pierre-Louis van Cleemputte, qui construisit la villa Lemot à partir de 1824.','Le bâtiment est édifié par l\'architecte Pierre-Louis van Cleemputte','sources/wikipedia/Domaine_de_la_Garenne_Lemot.txt'),
-    B('ourson-crucy','CRUCY',4.02,520,47.086034,-1.274926,'Comme l’architecte Mathurin Crucy, qui dessina les fabriques du parc avec Lemot.','Les fabriques du jardin sont construites par Mathurin Crucy et François-Frédéric Lemot','sources/wikipedia/Domaine_de_la_Garenne_Lemot.txt'),
-    B('ourson-loulou','LouLou',6.5,821,47.080396,-1.26189,'LouLou t’attend sur ce tronçon. Ouvre l’œil !',null,null),
-    B('ourson-titi','TiTi',8.5,1054,47.072972,-1.253553,'TiTi joue à cache-cache sur ce tronçon. Trouve-le !',null,null),
-    B('ourson-cacault','CACAULT',9.4,1155,47.074306,-1.25872,'Comme François Cacault, diplomate, qui fonda avec son frère Pierre un musée à Clisson.','y ont fondé un musée','sources/wikipedia/Domaine_de_la_Garenne_Lemot.txt'),
-    B('ourson-lyly','Lyly',10.5,1279,47.080123,-1.263409,'Lyly se cache dans ce coin de la boucle. Cherche bien !',null,null),
-    B('ourson-marguerite','MARGUERITE',12.49,1472,47.085708,-1.279575,'Comme Marguerite de Clisson, fille d’Olivier V, dépossédée du château après 1420.','Marguerite de Clisson, fille d\'Olivier V','sources/wikipedia/Château_de_Clisson.txt'),
-    B('ourson-jeanne','JEANNE',12.86,1516,47.085719,-1.280967,'Comme Jeanne de Belleville, qui se réfugia en Angleterre avec son fils Olivier.','Sa femme, Jeanne de Belleville, se réfugie en Angleterre avec son fils','sources/wikipedia/Château_de_Clisson.txt'),
-    B('ourson-oli','OLI',13.14,1552,47.086693,-1.281273,'Comme Olivier V de Clisson, né au château, devenu connétable en 1380.','devenu connétable en 1380','sources/wikipedia/Château_de_Clisson.txt'),
-    B('ourson-menard','MENARD',13.52,1603,47.087601,-1.281317,'Comme l’architecte René Ménard, qui reconstruisit l’église Notre-Dame en 1887-1888.','reconstruite en 1887-1888, par l\'architecte nantais René Ménard','sources/wikipedia/Église_Notre-Dame_de_Clisson.txt')
+    B('ourson-darnel','DARNEL',0.53,64,47.088617,-1.284423,'Dans cette église, un jour de mai 1789, toute la ville s’est réunie. Le sénéchal Pierre-Marie Darnel présidait, et 119 Clissonnais ont écrit ce qu’ils voulaient changer : que chacun puisse aspirer à tous les emplois, que l’impôt soit plus simple, que la presse soit libre. Les enfants, si vous deviez écrire une demande pour votre école, qu’est-ce que vous mettriez dedans ?','Sous la présidence du sénéchal Pierre-Marie Darnel','sources/wikipedia/Église_Saint-Jacques_de_Clisson.txt'),
+    B('ourson-valentin','VALENTIN',1.67,231,47.087894,-1.276684,'Jacques-Charles Valentin était un négociant, et surtout un grand ami de François-Frédéric Lemot. Entre 1810 et 1817, il a transformé l’ancien couvent des Bénédictines de la Trinité en belle demeure, dans le style italien et néo-palladien. Je l’ai vu travailler, et ce domaine a gardé l’esprit de son ami sculpteur. Un bâtiment qui change de vie, c’est aussi une histoire à raconter.','Le négociant Jacques-Charles Valentin, amis de Lemot, installe sa résidence dans l\'ancien couvent des Bénédictines de la Trinité','sources/wikipedia/Domaine_de_la_Garenne_Lemot.txt'),
+    B('ourson-barthy','BARTHY',2.2,297,47.086765,-1.276673,'Barthélemy Lemot était le fils du sculpteur. Il s’installe à Clisson en 1841, et il est plusieurs fois maire de la ville, jusqu’en 1881. C’est lui qui achève la villa de son père, et qui fait construire le belvédère, l’escalier monumental et la colonnade. Il promeut le style italianisant dans plusieurs bâtiments publics. Un maire qui aime l’art, ça se voit dans la ville !','devient plusieurs fois maire de la ville jusqu\'en 1881','sources/wikipedia/Domaine_de_la_Garenne_Lemot.txt'),
+    B('ourson-lemot','LEMOT',3.53,458,47.084764,-1.273673,'François-Frédéric Lemot est un sculpteur venu de Lyon. Son ami François Cacault l’attire à Clisson en 1805. Il achète la Garenne le 26 juin 1805 et rêve d’un coin d’Italie au bord de la Sèvre. Il devient sculpteur officiel de Napoléon Ier, et il veut donner à ce parc des airs de Tivoli, une ville qu’il admire. Il y travaille jusqu’à sa mort en 1827, et il est enterré dans le temple de l’Amitié. Quand vous marchez ici, vous marchez dans son rêve.','acquiert cette propriété de la Garenne dès le 26 juin 1805','sources/wikipedia/Domaine_de_la_Garenne_Lemot.txt'),
+    B('ourson-cleemputte','CLEEMPUTTE',4.03,521,47.086107,-1.274894,'Pierre-Louis van Cleemputte est un architecte parisien. Il reprend les travaux de la villa en 1824, dans le style néo-palladien, avec sa loggia qui regarde la vallée. Lemot n’en voit jamais la fin. Alors chaque fois que vous passez devant la villa, pensez à tous ceux qui ont travaillé à sa construction.','Le bâtiment est édifié par l\'architecte Pierre-Louis van Cleemputte','sources/wikipedia/Domaine_de_la_Garenne_Lemot.txt'),
+    B('ourson-crucy','CRUCY',4.53,587,47.085831,-1.270036,'Mathurin Crucy est un architecte nantais, grand prix de Rome en 1774. On lui attribue les plans du temple de Vesta, une des fabriques du parc, avec ses dix-huit colonnes doriques. C’est une allusion au temple de Vesta de Tivoli, en Italie. Un architecte qui a gagné un prix à Rome, et qui dessine un temple à Clisson, quelle belle histoire de voyage !','Les fabriques du jardin sont construites par Mathurin Crucy et François-Frédéric Lemot','sources/wikipedia/Domaine_de_la_Garenne_Lemot.txt'),
+    B('ourson-loulou','LouLou',6.5,821,47.080396,-1.26189,'Je te présente LouLou, un ourson drôle, très intelligent et plein d’humour. Il est un peu maladroit, et il trébuche souvent en voulant faire le malin ! Il est le fils de LyLy et le frère de TiTi. Si tu le croises sur le chemin, tu peux être sûr qu’il va te faire rire.',null,null),
+    B('ourson-titi','TiTi',8.5,1054,47.072972,-1.253553,'Voici TiTi, très agile, qui grimpe partout, aux arbres, aux murets et aux rochers. Il réfléchit vite et il a beaucoup d’humour. Il préfère jouer dans la nature plutôt qu’étudier, même s’il est très fort à l’école. Il est le fils de LyLy et le frère de LouLou. Si vous voulez le voir, regardez en haut !',null,null),
+    B('ourson-pef','PEF',9.4,1155,47.074306,-1.25872,'PEF, c’est pour réunir deux frères : François Cacault, diplomate et ancien député, et Pierre Cacault, peintre. Chassés d’Italie par les émeutiers anti-républicains, ils rentrent en France et s’installent à Clisson en 1798, séduits par la vallée. Ensemble, ils fondent un musée avec les œuvres rapportées de leurs séjours en Italie. Deux frères, deux talents, une seule passion pour l’art.','y ont fondé un musée','sources/wikipedia/Domaine_de_la_Garenne_Lemot.txt'),
+    B('ourson-lyly','LyLy',10.5,1279,47.080123,-1.263409,'Voici LyLy, la maman de LouLou et TiTi. Elle est belle, intelligente et sportive, et elle a tout fait pour que ses petits ours ne manquent de rien. Même devenus grands, ses enfants restent ses bébés, et elle continue de les chouchouter. Une maman, c’est le meilleur des guides sur un chemin, non ?',null,null),
+    B('ourson-marguerite','MARGUERITE',11.2,1362,47.083786,-1.267385,'Marguerite de Clisson est la fille d’Olivier V. Après 1420, accusée de trahison envers le duc de Bretagne, elle perd ses biens, dont le château de sa famille. Le château devient alors la propriété du duc. Son histoire rappelle que les châteaux changent de maîtres, mais que les familles, elles, ont une mémoire.','Marguerite de Clisson, fille d\'Olivier V','sources/wikipedia/Château_de_Clisson.txt'),
+    B('ourson-jeanne','JEANNE',11.99,1460,47.082671,-1.275405,'Jeanne de Belleville est une femme courageuse. Quand son mari, Olivier IV, est décapité à Paris en 1343, elle se réfugie en Angleterre avec son fils, Olivier. Il lui faudra du courage et de la patience pour que son fils retrouve ses terres. C’est une histoire de voyage forcé, mais aussi de fidélité.','Sa femme, Jeanne de Belleville, se réfugie en Angleterre avec son fils','sources/wikipedia/Château_de_Clisson.txt'),
+    B('ourson-oli','OLI',12.5,1473,47.08574,-1.279667,'Olivier V de Clisson est né dans ce château, et il devient connétable de France en 1380. C’est un homme puissant, mais il réside peu à Clisson. Il fonde aussi la collégiale Notre-Dame, que vous verrez tout à l’heure. Dans les murs de ce château, il y a l’histoire d’un enfant qui a grandi ici, et qui est devenu un grand seigneur.','devenu connétable en 1380','sources/wikipedia/Château_de_Clisson.txt'),
+    B('ourson-menard','MENARD',13.52,1603,47.087601,-1.281317,'René Ménard est un architecte nantais. Il reconstruit l’église Notre-Dame en 1887-1888, en s’inspirant d’une basilique de Rome. Le style italien de la ville a été composé par Lemot au début du XIXe siècle. Quand vous entrez dans cette église, vous voyez une ville qui se rêve dans un autre pays.','reconstruite en 1887-1888, par l\'architecte nantais René Ménard','sources/wikipedia/Église_Notre-Dame_de_Clisson.txt')
   ]);
   const finite=(n,min,max)=>typeof n==='number'&&Number.isFinite(n)&&n>=min&&n<=max;
   const text=(s,max)=>typeof s==='string'&&s.trim().length>0&&s.trim().length<=max;
@@ -75,9 +75,14 @@
   }
   function loadJSON(storage,key,fallback){try{const v=JSON.parse(storage?.getItem(key)||'null');return v??fallback;}catch{return fallback;}}
   function saveJSON(storage,key,value){try{storage?.setItem(key,JSON.stringify(value));return true;}catch{return false;}}
+  // Accepte l'ancien format (date seule) et le format fiche : {t: date, lieu: nom du lieu de rencontre}.
   function loadCaught(storage){
     const v=loadJSON(storage,BEARS_KEY,{});const out={};
-    for(const b of BEARS)if(finite(v?.[b.id],0,Infinity))out[b.id]=v[b.id];
+    for(const b of BEARS){
+      const x=v?.[b.id];
+      if(finite(x,0,Infinity))out[b.id]={t:x,lieu:null};
+      else if(x&&typeof x==='object'&&finite(x.t,0,Infinity))out[b.id]={t:x.t,lieu:typeof x.lieu==='string'?x.lieu.slice(0,120):null};
+    }
     return out;
   }
   // Point de rallye : nom et défi obligatoires, coordonnées autour de Clisson, origine déclarée.
@@ -116,15 +121,15 @@
       const p=byId.get(id),sheet=el('monument-sheet');if(!p||!sheet)return false;
       const f=fiches?.fiches?.[id]||null;
       el('monument-title').textContent=p.name;
-      el('monument-near').textContent=near.has(id)?'✨ Tu es tout près de ce monument.':'Monument du patrimoine de Clisson.';
-      el('monument-resume').textContent=f?f.resume:'La fiche de ce lieu est en préparation : nous n’affichons rien tant que son histoire n’est pas sourcée.';
+      el('monument-near').textContent=near.has(id)?'✨ Tu es tout près de ce monument.':'Un monument de Clisson à découvrir.';
+      el('monument-resume').textContent=f?f.resume:'L’Ours cherche encore les histoires de ce lieu. Reviens bientôt !';
       el('monument-fait').hidden=!f?.fait;
       el('monument-fait-date').textContent=f?.fait?.date||'';el('monument-fait-texte').textContent=f?.fait?.texte||'';
       el('monument-fait-absent').hidden=!f||!!f.fait;
       const more=el('monument-more');
-      if(f){more.href=f.source.url;more.textContent='En savoir plus sur Wikipédia ↗';more.setAttribute('aria-label','En savoir plus : page Wikipédia « '+f.source.titre+' » (nouvel onglet)');}
-      else{more.href=p.osm.url;more.textContent='Voir le lieu sur OpenStreetMap ↗';more.setAttribute('aria-label','Voir '+p.name+' sur OpenStreetMap (nouvel onglet)');}
-      el('monument-source').textContent=f?'D’après Wikipédia, « '+f.source.titre+' » (version '+f.source.revision+', CC BY-SA 4.0) · fiche en relecture.':'Position : OpenStreetMap, indicative.';
+      if(f){more.href=f.source.url;more.textContent='En savoir plus ↗';more.setAttribute('aria-label','En savoir plus : page Wikipédia « '+f.source.titre+' » (nouvel onglet)');}
+      else{more.href=p.osm.url;more.textContent='Voir le lieu ↗';more.setAttribute('aria-label','Voir '+p.name+' sur OpenStreetMap (nouvel onglet)');}
+      el('monument-source').textContent=f?'Source : Wikipédia, CC BY-SA 4.0.'+(f.faitSource?' Fait marquant : '+f.faitSource.titre+'.':''):'';
       if(!sheet.open)try{sheet.showModal();}catch{sheet.setAttribute('open','');}
       return true;
     }
@@ -155,14 +160,23 @@
         const p=byId.get(id),b=doc.createElement('button'),patri=p.type==='patrimoine';
         b.type='button';b.className='place-map-pin pin-glow '+(patri?'pin-gold':'pin-toscane');b.textContent=patri?'◆':'●';
         b.setAttribute('aria-label',p.name+(patri?' — tu es tout près, touche pour lire son histoire':' — tu es tout près de ce commerce'));
-        b.onclick=()=>patri?openFiche(id):toast(p.name+' · commerce référencé (OpenStreetMap), non partenaire confirmé.');
+        b.onclick=()=>patri?openFiche(id):toast(p.name+' · une adresse de la ville à découvrir sur ta route.');
         glowMarkers.set(id,marker(b,[p.longitude,p.latitude]));
       }
     }
 
     // ---- Oursons ----
+    // Lieu de rencontre : le repère le plus proche (≤ 120 m), sinon la position sur la boucle.
+    function meetingPlace(bear){
+      let best=null;
+      for(const p of allPlaces){const d=haversine(bear,p);if(!best||d<best.d)best={p,d};}
+      if(best&&best.d<=120)return best.p.name;
+      return 'un endroit secret';
+    }
     function renderBears(fix){
       for(const bear of bears){
+        // Un ours attrapé quitte la carte : il est désormais dans le carnet.
+        if(caught[bear.id]){bearMarkers.get(bear.id)?.remove?.();bearMarkers.delete(bear.id);continue;}
         let m=bearMarkers.get(bear.id),b=m?.getElement?.()||m?._el;
         if(!m){
           b=doc.createElement('button');b.type='button';
@@ -176,41 +190,64 @@
         // Conserver les classes posées par MapLibre (positionnement du marqueur) : ne remplacer que l'état de l'ourson.
         b.className=[...String(b.className||'').split(/\s+/).filter(c=>c&&!/^ourson-/.test(c)),'ourson-pin',got?'ourson-attrape':ready?'ourson-pret':'ourson-cache'].join(' ');
         (b._face||b).textContent=got?'✓':ready?'🧸':'🐾';
-        b.setAttribute('aria-label',got?bear.nom+' est déjà dans ton carnet':ready?bear.nom+' est là ! Touche pour l’attraper':'Traces d’ourson au kilomètre '+String(bear.km).replace('.',',')+' : approche-toi');
+        b.setAttribute('aria-label',got?bear.nom+' est déjà dans ton carnet':ready?bear.nom+' est là ! Touche pour l’attraper':'Traces d’ourson : approche-toi');
       }
       renderCollection();
     }
+    // Entrée dans le carnet : appelée une fois la rencontre terminée (ou directement sans module 3D).
+    function commitCatch(bear,photo){
+      const win2=win;
+      const lieu=meetingPlace(bear);
+      caught={...caught,[bear.id]:{t:Date.now(),lieu}};
+      const saved=saveJSON(storage,BEARS_KEY,caught);
+      const rank=Object.keys(caught).length;
+      toast('🧸 '+bear.nom+' rejoint ton carnet ! Votre rencontre : '+lieu+'.'+(saved?'':' Ce souvenir disparaîtra à la fermeture de l’appli.'));
+      renderCollection();
+      bearMarkers.get(bear.id)?._el?.classList?.add('ourson-capture');
+      const pulse=el('rallye-open');pulse?.classList?.add('carnet-pulse');
+      win2.setTimeout?.(()=>{pulse?.classList?.remove('carnet-pulse');renderBears(getFix());},900);
+      try{win2.navigator?.vibrate?.(80);}catch{}
+      return true;
+    }
     function tryCatch(bear){
-      if(caught[bear.id]){toast(bear.nom+' est déjà dans ton carnet.');return false;}
+      if(caught[bear.id]){toast(bear.nom+' est déjà dans ton carnet !');return false;}
       const fix=getFix();
       if(!canCatch(bear,fix)){
         const ok=readFix(fix);
-        const km='Cherche vers le kilomètre '+String(bear.km).replace('.',',')+' de la boucle.';
-        toast(ok?bear.nom+' est à environ '+fmtDist(haversine(ok,bear))+'. Approche-toi à moins de '+BEAR_M+' m. '+km:
-          'Lance « Démarrer le GPS » (précision ≤ '+MAX_ACCURACY_M+' m) pour trouver '+bear.nom+'. '+km);
+        const km='Il se cache quelque part sur le chemin.';
+        toast(ok?bear.nom+' n’est pas loin. Avance encore un peu ! '+km:
+          'Lance ta balade (Démarrer le GPS) pour partir à la recherche de '+bear.nom+'. '+km);
         return false;
       }
-      caught={...caught,[bear.id]:Date.now()};
-      const saved=saveJSON(storage,BEARS_KEY,caught);
-      bearMarkers.get(bear.id)?._el?.classList?.add('ourson-capture');
-      toast('🧸 Bravo ! Tu as attrapé '+bear.nom+'. '+(bear.appui?bear.indice+' ':'')+(saved?'Il t’attend dans le Carnet de l’Ours.':'Il reste avec toi jusqu’au rechargement (stockage indisponible).'));
-      try{win.navigator?.vibrate?.(80);}catch{}
-      renderBears(fix);return true;
+      // Avec le module 3D : rencontre (miel à l'arrêt). Sans lui : entrée directe, comme avant.
+      if(win.BearRencontre?.controller){
+        win.BearRencontre.controller.open(bear,{index:bears.indexOf(bear),onCaught:photo=>commitCatch(bear,photo)});
+        return true;
+      }
+      return commitCatch(bear,null);
     }
+    // Carnet façon pokédex : une fiche par ours, numérotée. Non rencontré = silhouette et « ??? ».
     function renderCollection(){
       const list=el('oursons-list');if(!list)return;
       list.replaceChildren();
-      for(const bear of bears){
-        const li=doc.createElement('li'),got=caught[bear.id];
-        li.className=got?'ourson-slot is-caught':'ourson-slot';
-        // Petite tête d'ourson dessinée en CSS (dorée si attrapé, silhouette sinon).
-        const head=doc.createElement('span');head.className=got?'ourson-tete':'ourson-tete is-hidden';head.setAttribute('aria-hidden','true');
-        const muzzle=doc.createElement('span');muzzle.className='ourson-museau';head.append(muzzle);
-        const label=doc.createElement('span');
-        label.textContent=got?bear.nom+' · attrapé le '+new Date(got).toLocaleDateString('fr-FR')+' · '+(bear.appui?bear.indice:'Un ourson de la famille Bear is BacK, trouvé au km '+String(bear.km).replace('.',',')+'.'):'Ourson caché vers le km '+String(bear.km).replace('.',',');
-        li.append(head,label);list.append(li);
-      }
-      el('oursons-count').textContent=Object.keys(caught).length+' / '+bears.length+' oursons attrapés';
+      bears.forEach((bear,k)=>{
+        const li=doc.createElement('li'),entry=caught[bear.id],km=String(bear.km).replace('.',',');
+        li.className='pokedex-entry '+(entry?'is-caught':'is-hidden');
+        const add=(tag,text,cls)=>{const n=doc.createElement(tag);n.textContent=text;if(cls)n.className=cls;li.append(n);return n;};
+        add('p','N° '+String(k+1).padStart(2,'0'),'pokedex-num');
+        const box=doc.createElement('div');box.className='pokedex-photo';box.setAttribute('aria-hidden','true');
+        const photo=entry&&win.BearRencontre?.controller?.photo?.(bear.id);
+        if(photo){const img=doc.createElement('img');img.src=photo;img.alt='Photo de '+bear.nom+' (rendu 3D)';img.width=84;img.height=84;img.style.cssText='width:100%;height:100%;object-fit:contain';box.append(img);}
+        else if(entry){const head=doc.createElement('span');head.className='ourson-tete';head.append(doc.createElement('span'));box.append(head);
+          }
+        else box.textContent='?';
+        li.append(box);
+        add('h4',entry?bear.nom:'???');
+        add('p',entry?'Rencontré le '+new Date(entry.t).toLocaleDateString('fr-FR')+' à '+(entry.lieu||'un endroit secret')+'.':'Il se cache quelque part sur le chemin.');
+        add('p',entry?bear.indice:'Continue la balade pour le découvrir.','pokedex-story');
+        list.append(li);
+      });
+      el('oursons-count').textContent=Object.keys(caught).length+' / '+bears.length+' oursons rencontrés';
     }
 
     // ---- Rallye photo : points ----
@@ -221,7 +258,7 @@
         if(rallyMarkers.has(p.id))continue;
         const b=doc.createElement('button');b.type='button';b.className='rallye-pin';b.textContent='📷';
         b.setAttribute('aria-label','Point du rallye photo : '+p.nom);
-        b.onclick=()=>toast('📷 '+p.nom+' · Défi : '+p.defi);
+        b.onclick=()=>toast('📷 Défi photo : '+p.defi);
         rallyMarkers.set(p.id,marker(b,[p.longitude,p.latitude]));
       }
       const list=el('orga-list');if(!list)return;
@@ -281,7 +318,7 @@
     function tick(fix=getFix(),now=Date.now()){
       const r=updateNear(near,allPlaces,fix,now);
       near=r.near;
-      if(r.entered.length){const p=byId.get(r.entered[0]);toast('✨ '+p.name+' s’illumine ! '+(p.type==='patrimoine'?'Touche le repère doré pour découvrir son histoire.':'Touche le repère pour voir le commerce.'));try{win.navigator?.vibrate?.([40,60,40]);}catch{}}
+      if(r.entered.length){const p=byId.get(r.entered[0]);toast('✨ '+p.name+' s’illumine ! '+(p.type==='patrimoine'?'Touche le repère doré pour découvrir son histoire.':'Touche son repère pour le découvrir.'));try{win.navigator?.vibrate?.([40,60,40]);}catch{}}
       drawGlow();renderBears(fix);
       return r;
     }

@@ -223,3 +223,28 @@ body.orga-mode #map{outline:4px dashed var(--river);outline-offset:-4px;cursor:c
 .ourson-slot{isolation:isolate}
 
 .place-map-pin.pin-glow.pin-toscane{box-shadow:0 0 0 6px #C96E4B66,0 0 28px 10px #E49A7ACC}
+/* V14 · Mode soleil : contraste renforcé sur la carte et les repères */
+body.sun-mode #map canvas{filter:contrast(1.22) saturate(1.18) brightness(1.04)}
+body.sun-mode .place-map-pin{border-width:4px;box-shadow:0 0 0 3px #FFF9F3,0 6px 16px #000a}
+#immersion-toggle,#sun-toggle{min-height:48px;margin:6px 6px 6px 0}
+/* V14 · Carnet façon pokédex : une fiche par ours */
+.pokedex-entry{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;padding:14px;border-radius:18px;background:var(--paper);border:1px solid var(--ink);list-style:none}
+.pokedex-entry.is-hidden{border-style:dashed;opacity:.8}
+.pokedex-entry .pokedex-num{grid-column:1/-1;margin:0;font-size:12px;letter-spacing:.08em;color:#7A5911;font-weight:750}
+.pokedex-entry h4{grid-column:2;margin:0;font-size:20px;font-family:Georgia,serif}
+.pokedex-entry p{grid-column:1/-1;margin:2px 0;font-size:13px}
+.pokedex-entry .pokedex-story{font-style:italic}
+.pokedex-photo{grid-row:span 2;width:84px;height:84px;border-radius:16px;background:var(--stone);border:2px solid var(--ink);display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:32px;font-weight:750;overflow:hidden}
+.pokedex-photo small{font-size:10px;text-align:center;padding:0 4px}
+.pokedex-entry.is-hidden .pokedex-photo{filter:grayscale(1);opacity:.6}
+.oursons-list{display:grid;gap:10px}
+.carnet-pulse{animation:carnet-pulse 1.2s ease-in-out 2}
+@keyframes carnet-pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.12);box-shadow:0 0 0 6px #F4D77A}}
+@media (prefers-reduced-motion:reduce){.carnet-pulse{animation:none}}
+/* V14 · Rencontre avec un ours (3D) */
+.rencontre-sheet .rencontre-stage{display:flex;justify-content:center;background:radial-gradient(circle at 50% 60%,#F4D77A66,transparent 70%);border-radius:24px;margin:8px 0}
+.rencontre-sheet canvas{width:240px;height:240px;max-width:100%;touch-action:none}
+#rencontre-feed{width:100%;margin:8px 0;min-height:56px}
+#rencontre-status{font-weight:650;min-height:3em}
+.rencontre-sheet .sheet-title button{min-height:48px}
+.pokedex-photo img{border-radius:14px}

@@ -240,6 +240,9 @@
         root.BearNearby?.attach(ui,{document:doc,navigator:root.navigator,isMobile:mobile});
       }catch{ /* « Autour de moi » reste optionnel : la liste fonctionne sans lui. */ }
       try{root.BearDecouverte?.start(ui,{map,Marker});}catch{ /* Découverte V13 optionnelle. */ }
+      try{root.BearMiel?.start(ui,{map});}catch{ /* Miel V14 optionnel. */ }
+      try{root.BearImmersion?.start();}catch{ /* Immersion optionnelle. */ }
+      try{root.BearRencontre?.start({});}catch{ /* Rencontre 3D optionnelle. */ }
       return ui;
     }catch(error){
       doc.getElementById('places-status').textContent='Repères indisponibles. Le guidage GPS reste utilisable.';

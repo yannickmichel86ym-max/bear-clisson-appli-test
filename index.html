@@ -14,6 +14,10 @@
 <script src="./loop-navigation.js"></script>
 <script src="./fiches-monuments.js" defer></script>
 <script src="./rallye-points.js" defer></script>
+<script src="./miel-gouttes.js" defer></script>
+<script src="./miel.js" defer></script>
+<script src="./immersion.js" defer></script>
+<script src="./rencontre.js" defer></script>
 <script src="./decouverte.js" defer></script>
 <script src="./nearby-me.js" defer></script>
 <script src="./places-map.js" defer></script>
@@ -103,7 +107,7 @@
 <div class="audio-controls">  <button type="button" id="audio-test" aria-label="Tester le son en français après un clic explicite">Tester le son</button></div>
   <p id="audio-status" role="status">Son selon Safari et volume · test disponible hors démo, application visible.</p>
   <p class="safety">Garde l’application visible : GPS possiblement perdu si elle est masquée ou l’écran verrouillé. Alertes non garanties.</p>
-  <details><summary>Écran, carte et confidentialité</summary><button type="button" id="wake" aria-label="Tenter de garder l’écran allumé pendant le suivi GPS" aria-pressed="false">Maintien écran : désactivé</button><p id="wake-status" role="status">Option désactivée. Selon Safari et le système. Une PWA ne garantit ni GPS ni alerte en arrière-plan ou écran verrouillé. Son selon Safari et volume.</p><p id="connection" role="status">Vérification réseau…</p><p id="offline-status" role="status">Vérification de la coque hors ligne…</p><p id="map-help">Glisse pour explorer ; pince pour zoomer. « Me suivre » retrouve la perspective. Clavier : flèches et + / − dans la carte. La direction suit les segments de la trace, elle ne mesure pas ton orientation physique.</p><p>Aucune position GPS transmise par l’application. Le fournisseur reçoit les requêtes cartographiques et peut en déduire la zone consultée. Aucun routage, aucun détour. Distances indicatives. Fond cartographique disponible avec Internet ; hors ligne, seule la trace est affichée.</p></details>
+  <details><summary>Écran, carte et confidentialité</summary><button type="button" id="wake" aria-label="Tenter de garder l’écran allumé pendant le suivi GPS" aria-pressed="false">Maintien écran : désactivé</button><button type="button" id="immersion-toggle" aria-pressed="false" aria-label="Activer ou désactiver la vue immersive : carte plus proche et plus inclinée">Vue immersive : désactivée</button><button type="button" id="sun-toggle" aria-pressed="false" aria-label="Activer ou désactiver le mode soleil : contraste renforcé pour la lecture en plein jour">Mode soleil : désactivé</button><p id="wake-status" role="status">Option désactivée. Selon Safari et le système. Une PWA ne garantit ni GPS ni alerte en arrière-plan ou écran verrouillé. Son selon Safari et volume.</p><p id="connection" role="status">Vérification réseau…</p><p id="offline-status" role="status">Vérification de la coque hors ligne…</p><p id="map-help">Glisse pour explorer ; pince pour zoomer. « Me suivre » retrouve la perspective. Clavier : flèches et + / − dans la carte. La direction suit les segments de la trace, elle ne mesure pas ton orientation physique.</p><p>Aucune position GPS transmise par l’application. Le fournisseur reçoit les requêtes cartographiques et peut en déduire la zone consultée. Aucun routage, aucun détour. Distances indicatives. Fond cartographique disponible avec Internet ; hors ligne, seule la trace est affichée.</p></details>
 <details><summary>Installer sur mon téléphone</summary><p>iPhone : dans Safari, ouvre Partager puis « Sur l’écran d’accueil ». Android : dans Chrome, ouvre le menu puis « Installer l’application » ou « Ajouter à l’écran d’accueil », selon la version.</p><p>Première ouverture avec connexion nécessaire pour préparer le cache. Attends la confirmation de la coque hors ligne ci-dessus. Les rues du fond de carte ne sont pas conservées hors ligne ; la trace et la démo restent disponibles après mise en cache complète. Le GPS réel nécessite HTTPS ou localhost et ton autorisation.</p></details><nav class="sheet-links"><a href="./timeline.html">Voyage dans le temps ↗</a><a href="./aventures.html">Les aventures ↗</a></nav></dialog>
 <dialog id="monument-sheet" class="monument-sheet" aria-labelledby="monument-title">
  <div class="sheet-title"><div><p class="eyebrow">PATRIMOINE · OR</p><h2 id="monument-title">Monument</h2></div><button type="button" id="monument-close" aria-label="Fermer la fiche du monument">✕</button></div>
@@ -114,8 +118,15 @@
  <a id="monument-more" class="monument-more" href="https://fr.wikipedia.org/wiki/Clisson" target="_blank" rel="noopener noreferrer">En savoir plus ↗</a>
  <p id="monument-source" class="rallye-note"></p>
 </dialog>
+<dialog id="rencontre" class="rencontre-sheet" aria-labelledby="rencontre-title">
+ <div class="sheet-title"><div><p class="eyebrow">RENCONTRE</p><h2 id="rencontre-title">Ourson</h2></div><button type="button" id="rencontre-leave" aria-label="Quitter la rencontre et laisser l’ours tranquille">Laisser tranquille</button></div>
+ <div class="rencontre-stage"><canvas id="rencontre-canvas" width="240" height="240" aria-label="Ours en 3D, qui réagit à ta présence" role="img"></canvas></div>
+ <p id="rencontre-status" role="status" aria-live="polite"></p>
+ <button type="button" id="rencontre-feed" class="primary" aria-label="Offrir une goutte de miel à l’ours, seulement si tu es à l’arrêt" disabled>Offrir du miel (0)</button>
+ <p id="rencontre-safety" class="safety"></p>
+</dialog>
 <dialog id="rallye" aria-labelledby="rallye-title">
- <div class="sheet-title"><div><p class="eyebrow">LE CARNET DE L’OURS</p><h2 id="rallye-title">Les histoires commencent ici.</h2></div><button type="button" id="rallye-close" aria-label="Fermer le carnet et retrouver la carte">✕</button></div>
+ <div class="sheet-title"><div><p class="eyebrow">LE CARNET DE L’OURS</p><h2 id="rallye-title">À la rencontre des Ours protecteurs de Clisson</h2></div><button type="button" id="rallye-close" aria-label="Fermer le carnet et retrouver la carte">✕</button></div>
  <div class="carnet-journey">
  <p class="rallye-intro">Photographie un monument.<br><strong>L’Ours te raconte son histoire.</strong></p>
  <p>Un souvenir à garder, une histoire à partager en famille. Arrête-toi en sécurité avant de prendre une photo.</p>
@@ -141,8 +152,9 @@
  <p class="rallye-note">Continue la balade avec ou sans photo : le guidage et la progression GPS restent indépendants du carnet.</p>
  </div>
  <article class="oursons-card" aria-labelledby="oursons-title"><p class="eyebrow">LES OURSONS DE CLISSON</p><h3 id="oursons-title">Mes oursons</h3>
- <p>Quatorze oursons virtuels se cachent le long de la boucle, environ un par kilomètre. Avec « Démarrer le GPS », approche-toi des traces 🐾 sur la carte : à moins de 35 m, l’ourson 🧸 apparaît, touche-le pour l’attraper. Arrête-toi en sécurité, regarde autour de toi, pas seulement l’écran.</p>
- <p id="oursons-count" role="status">0 / 14 oursons attrapés</p><ul id="oursons-list" class="oursons-list"></ul></article>
+ <p>Quatorze oursons se cachent sur le chemin. Lance ta balade et suis les traces 🐾 : quand un ours est tout près, il apparaît. Touche-le pour faire sa connaissance. Arrête-toi en sécurité, regarde autour de toi, pas seulement l’écran.</p>
+ <p id="oursons-count" role="status">0 / 14 oursons rencontrés</p>
+ <p id="miel-count" role="status">0 goutte(s) de miel dans ta réserve</p><p class="rallye-note">Des gouttes de miel dorées sont posées le long de la boucle. Passe dessus en marchant pour les ramasser : elles serviront à attirer les oursons.</p><ul id="oursons-list" class="oursons-list"></ul></article>
  <details class="orga-tools"><summary>Organisateur : placer les points du rallye photo</summary>
  <p>Réservé à l’organisation. Les points restent sur cet appareil jusqu’à leur export, puis leur intégration dans l’application.</p>
  <button type="button" id="orga-toggle" aria-pressed="false" aria-label="Activer ou désactiver le mode organisateur pour placer des points sur la carte">Mode organisateur : désactivé</button>
