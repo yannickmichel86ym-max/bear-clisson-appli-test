@@ -118,10 +118,13 @@ function offTraceDisplay(nearest){
 function resumeRecording(){
  if(!paused)return;
  paused=false;countedFix=null;walkedSinceAnchor=0;matched=null;reanchorPending=true;saveBalade();
+ speak('Reprise',true);
  $('pause-open').textContent='❚❚ Pause';
 }
 function openPauseSheet(){
+ const wasPaused=paused;
  paused=true;keepPaused=false;saveBalade();
+ if(!wasPaused)speak('Mise en pause',true);
  $('pause-open').textContent='● En pause';
  const sheet=$('pause-sheet');
  if(!sheet.open){try{sheet.showModal();}catch{sheet.setAttribute('open','');}}

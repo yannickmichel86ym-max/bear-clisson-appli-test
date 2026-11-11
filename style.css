@@ -372,3 +372,14 @@ a{color:var(--river)}
 .pause-actions{display:grid;gap:10px;margin:16px 0}
 .pause-actions button{min-height:56px;font-size:16px;font-weight:800}
 #end-summary{font-size:15px}
+/* V17 · Fin d'intro : le fond bleu se dissout, confettis à la Keynote. */
+.intro{transition:background-color .9s ease}
+.intro.is-dissolve{background-color:transparent;pointer-events:none}
+.intro-confetti{position:absolute;inset:0;overflow:hidden;pointer-events:none;z-index:2}
+.intro-confetti i{position:absolute;top:50%;width:10px;height:14px;border-radius:2px;opacity:0;animation:confetti-burst cubic-bezier(.2,.7,.4,1) forwards}
+@keyframes confetti-burst{
+ 0%{transform:translate(0,0) rotate(0);opacity:1}
+ 45%{transform:translate(var(--dx),var(--dy)) rotate(calc(var(--r)*.6));opacity:1}
+ 100%{transform:translate(calc(var(--dx)*1.1),75vh) rotate(var(--r));opacity:0}
+}
+.intro.is-dissolve #intro-skip{opacity:0}

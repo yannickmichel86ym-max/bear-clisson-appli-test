@@ -237,7 +237,26 @@
  function leave(){
   if(done||intro.classList.contains('is-leaving'))return;
   intro.classList.add('is-leaving');
-  timers.push(setTimeout(finish,reduce?300:2800));
+  if(!reduce)timers.push(setTimeout(dissolve,1800));
+  timers.push(setTimeout(finish,reduce?300:4000));
+ }
+ // Fin : le fond bleu se dissout et des confettis partent, comme une présentation Keynote.
+ function dissolve(){
+  intro.classList.add('is-dissolve');
+  var box=document.createElement('div');box.className='intro-confetti';box.setAttribute('aria-hidden','true');
+  var colors=['#C96E4B','#7FA36A','#4F90C2','#F4E7D3','#FFF9F3','#2F2A26'];
+  for(var i=0;i<90;i++){
+   var p=document.createElement('i');
+   p.style.left=(30+Math.random()*40)+'%';
+   p.style.background=colors[i%colors.length];
+   p.style.setProperty('--dx',((Math.random()-.5)*150)+'vw');
+   p.style.setProperty('--dy',(-25-Math.random()*45)+'vh');
+   p.style.setProperty('--r',(Math.random()*720-360)+'deg');
+   p.style.animationDelay=(Math.random()*.25)+'s';
+   p.style.animationDuration=(2.2+Math.random()*1.2)+'s';
+   box.appendChild(p);
+  }
+  intro.appendChild(box);
  }
  timers.push(setTimeout(leave,reduce?400:2600));
  document.getElementById('intro-skip').addEventListener('click',function(){
