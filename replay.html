@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Rejeu GPS · test</title>
+<style>
+:root{--ink:#2F2A26;--paper:#FFF9F3}
+body{margin:0;padding:12px;font:15px system-ui,-apple-system,sans-serif;background:var(--paper);color:var(--ink)}
+h1{font-size:18px;margin:0 0 6px}
+p{margin:6px 0;line-height:1.4}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:8px 0}
+button,select{min-height:44px;padding:8px 12px;border:1px solid var(--ink);border-radius:12px;background:#fff;color:var(--ink);font:inherit}
+button.primary{background:var(--ink);color:var(--paper)}
+iframe{width:100%;height:58vh;border:1px solid var(--ink);border-radius:12px;background:#fff}
+#log{font:12px ui-monospace,Menlo,monospace;background:#fff;border:1px solid #bbb;border-radius:8px;padding:8px;height:220px;overflow:auto;white-space:pre-wrap}
+</style>
+</head>
+<body>
+<h1>Rejeu GPS · trajets simulés (test)</h1>
+<p>Ouvre l’appli, choisis un trajet, puis lance le rejeu. Les positions arrivent toutes les 2 secondes, avec du bruit réaliste. Rien n’est envoyé à un serveur.</p>
+<div class="row">
+ <select id="scenario" aria-label="Trajet simulé">
+  <option value="trace">1 · Sur la trace (300 m)</option>
+  <option value="detour">2 · Détour de 120 m puis retour</option>
+  <option value="reverse">3 · Marche à contre-sens (150 m)</option>
+  <option value="noisy">4 · Bruit, 15 % de pertes, pause de 30 s</option>
+ </select>
+ <button id="open" type="button">Ouvrir l’appli</button>
+ <button id="run" type="button" class="primary">Lancer le rejeu</button>
+ <button id="stop" type="button">Arrêter</button>
+</div>
+<iframe id="app" title="Appli Bear is Back" src="index.html"></iframe>
+<p id="status" role="status">Chargement de la trace…</p>
+<div id="log" aria-label="Journal du rejeu"></div>
+<script>
+(()=>{
+const $=id=>document.getElementById(id);
+const frame=$('app');
+let win=null,doc=null,route=null,cum=null,total=0,timer=null,path=[],idx=0,dropRate=0,noise=3,label='';
+const listeners=new Map();let seq=0;
+const log=m=>{const t=new Date().toLocaleTimeString('fr-FR');$('log').textContent+=`${t}  ${m}\n`;$('log').scrollTop=1e9;};
+const status=m=>{$('status').textContent=m;};
+const K=111195;
+const gauss=()=>Math.sqrt(-2*Math.log(Math.random()+1e-12))*Math.cos(2*Math.PI*Math.random());
+
+// Trace réelle (data/parcours.json), en mètres cumulés.
+fetch('data/parcours.json').then(r=>r.json()).then(d=>{
+ route=d.points.map(p=>[p[0],p[1]]);cum=[0];
+ const hav=(a,b)=>{const R=6371008.8,p=a[0]*Math.PI/180,q=b[0]*Math.PI/180,dp=q-p,dl=(b[1]-a[1])*Math.PI/180;const h=Math.sin(dp/2)**2+Math.cos(p)*Math.cos(q)*Math.sin(dl/2)**2;return 2*R*Math.asin(Math.sqrt(h));};
+ for(let i=1;i<route.length;i++)cum.push(cum[i-1]+hav(route[i-1],route[i]));
+ total=cum.at(-1);status(`Trace chargée : ${Math.round(total)} m. Ouvre l’appli puis lance le rejeu.`);
+ log(`Trace chargée : ${Math.round(total)} m, ${route.length} points.`);
+}).catch(()=>status('Trace indisponible : lance ce test depuis le dossier du projet.'));
+
+function pointAt(m){
+ m=Math.max(0,Math.min(total,m));
+ let lo=0,hi=cum.length-1;while(lo+1<hi){const mid=(lo+hi)>>1;if(cum[mid]<=m)lo=mid;else hi=mid;}
+ const f=cum[lo+1]>cum[lo]?(m-cum[lo])/(cum[lo+1]-cum[lo]):0;
+ return [route[lo][0]+f*(route[lo+1][0]-route[lo][0]),route[lo][1]+f*(route[lo+1][1]-route[lo][1])];
+}
+// Position latérale : décalage perpendiculaire à la trace (mètres, + = gauche de la marche).
+function place(m,off){
+ const p=pointAt(m),a=pointAt(m-3),b=pointAt(m+3),c=Math.cos(p[0]*Math.PI/180);
+ const tx=(b[1]-a[1])*K*c,ty=(b[0]-a[0])*K,n=Math.hypot(tx,ty)||1;
+ return [p[0]+off*(tx/n)/K,p[1]-off*(-ty/n)/(K*c)];
+}
+
+// Scénarios : chaque phase = distance parcourue, sens, décalage latéral cible (ou arrêt).
+const SCEN={
+ trace:{start:0,noise:3,drop:0,phases:[{m:300,dir:1,off:0}]},
+ detour:{start:0,noise:3,drop:0,phases:[{m:150,dir:1,off:0},{m:120,dir:1,off:120},{m:150,dir:1,off:0}]},
+ reverse:{start:1000,noise:3,drop:0,phases:[{m:150,dir:-1,off:0}]},
+ noisy:{start:0,noise:6,drop:0.15,phases:[{m:120,dir:1,off:0},{stop:30},{m:180,dir:1,off:0}]}
+};
+// Une position toutes les 2 s, à 1,4 m/s de marche.
+function buildPath(sc){
+ const out=[];let along=sc.start,off=0;const step=1.4*2;
+ for(const ph of sc.phases){
+  if(ph.stop){const n=Math.round(ph.stop/2);for(let i=0;i<n;i++)out.push({along,off,stop:true});continue;}
+  const n=Math.round(ph.m/step),from=off;
+  for(let i=0;i<n;i++){along+=ph.dir*step;const k=Math.min(1,(i*step)/20);off=from+(ph.off-from)*k;out.push({along,off});}
+ }
+ return out;
+}
+
+function fakeGeo(){
+ return {
+  watchPosition(ok,err){const id=++seq;listeners.set(id,{ok,err});return id;},
+  clearWatch(id){listeners.delete(id);},
+  getCurrentPosition(ok){const p=lastPos();if(p)ok(p);}
+ };
+}
+let last=null;
+function lastPos(){return last;}
+
+function attach(){
+ try{
+  win=frame.contentWindow;doc=win.document;
+  Object.defineProperty(win.navigator,'geolocation',{configurable:true,value:fakeGeo()});
+  // Pas de voix réelle pendant le test : le texte est journalisé à la place.
+  win.speechSynthesis.speak=u=>{log('🔊 '+u.text);setTimeout(()=>u.onend?.(),10);};
+  win.speechSynthesis.cancel=()=>{};
+  doc.getElementById('intro')?.setAttribute('hidden','');
+  log('Appli ouverte : GPS simulé branché.');
+ }catch(e){log('Impossible de brancher le GPS simulé : '+e.message);}
+}
+frame.addEventListener('load',attach);
+
+function readApp(){
+ if(!doc)return '';
+ const t=id=>doc.getElementById(id)?.textContent?.trim()||'';
+ const alert=doc.getElementById('off-alert');
+ return `parcouru ${t('metres-walked')} · reste ${t('metres-left')}${alert&&!alert.hidden?' · HORS TRACE ('+t('rejoin-text')+')':''}`;
+}
+
+function emit(pos){
+ const acc=Math.round(4+Math.random()*8);
+ const coords={latitude:pos[0],longitude:pos[1],accuracy:acc,altitude:null,altitudeAccuracy:null,heading:null,speed:null};
+ last={coords,timestamp:Date.now()};
+ for(const l of listeners.values())l.ok(last);
+ return acc;
+}
+
+function tick(){
+ if(idx>=path.length){stop(true);return;}
+ const s=path[idx++];
+ if(Math.random()<dropRate){log(`#${idx} perte de signal (aucune mesure)`);return;}
+ const base=place(s.along,s.off);
+ const k=K,jitter=[gauss()*noise/k,gauss()*noise/(k*Math.cos(base[0]*Math.PI/180))];
+ const acc=emit([base[0]+jitter[0],base[1]+jitter[1]]);
+ if(idx%5===0||idx===1)log(`#${idx} ${label}${s.stop?' · arrêt':''} · précision ${acc} m · ${readApp()}`);
+}
+
+function stop(done){
+ clearInterval(timer);timer=null;
+ log(done?'Rejeu terminé.':'Rejeu arrêté.');
+ status(done?'Rejeu terminé. Regarde l’écran de l’appli et le journal.':'Rejeu arrêté.');
+}
+
+// Démarre le GPS de l'appli (bouton « Partir »), en réessayant tant que la trace n'est pas chargée.
+function startGps(tries=0){
+ if(!doc)return;
+ if(listeners.size)return;
+ doc.getElementById('enter')?.click?.();
+ if(tries<30)setTimeout(()=>startGps(tries+1),500);
+}
+
+$('open').onclick=()=>{ if(!doc)attach(); log('Ouvre la trace : appuie sur « Partir à l’aventure » dans l’appli si besoin.'); };
+$('run').onclick=()=>{
+ if(!route){status('La trace n’est pas encore chargée.');return;}
+ if(timer){log('Un rejeu est déjà en cours.');return;}
+ const key=$('scenario').value,sc=SCEN[key];
+ label=$('scenario').options[$('scenario').selectedIndex].text;
+ path=buildPath(sc);idx=0;dropRate=sc.drop;noise=sc.noise;
+ startGps();
+ log(`Lancement : ${label} · ${path.length} positions prévues.`);
+ status('Rejeu en cours…');
+ // Laisse à l'appli le temps de démarrer le GPS avant la première position.
+ setTimeout(()=>{if(!listeners.size){log('L’appli n’a pas démarré le GPS : appuie sur « Partir à l’aventure » dans le cadre, puis relance.');return;}timer=setInterval(tick,2000);tick();},1500);
+};
+$('stop').onclick=()=>{if(timer)stop(false);};
+})();
+</script>
+</body>
+</html>

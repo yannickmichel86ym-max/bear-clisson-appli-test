@@ -333,3 +333,42 @@ article,.observation-card,.culture-card,.oursons-card,.souvenir-card,.partner-em
 a{color:var(--river)}
 .toast,#decouverte-toast{background:var(--ink);color:#fff;border-radius:18px;box-shadow:0 10px 24px rgba(47,42,38,.25)}
 #monument-sheet h2,#rallye h2,#rencontre h2{font-size:clamp(26px,6vw,34px)}
+/* V17 · Écran d'intro « Bienvenue à Clisson Ours City » : ciel, 4 nuages, sortie en glissant. */
+.intro{position:fixed;inset:0;z-index:50;background:var(--sky);overflow:hidden;display:flex;flex-direction:column;align-items:center;justify-content:center;color:var(--ink)}
+.intro-cloud{position:absolute;height:auto;transition:transform 1s cubic-bezier(.55,0,.3,1)}
+/* Quatre nuages de tailles différentes, coupés par les bords. Ordre de sortie : droite, gauche, droite, gauche. */
+.intro-cloud.c3{right:-20vw;top:6%;width:56vw}
+.intro-cloud.c1{left:-18vw;top:28%;width:40vw}
+.intro-cloud.c4{right:-26vw;top:52%;width:78vw}
+.intro-cloud.c2{left:-24vw;top:76%;width:66vw}
+.intro-text{position:relative;z-index:1;width:100%;padding:0 16px;text-align:center;transition:opacity .6s ease,filter .6s ease}
+.intro-line{margin:0;font-weight:900;letter-spacing:-.03em;line-height:1;white-space:nowrap}
+.intro-line.l1{font-size:clamp(34px,10vw,64px)}
+.intro-line.l2{font-size:clamp(22px,6vw,36px);font-weight:700;margin:6px 0}
+.intro-line.l3,.intro-line.l4{display:block}
+.intro-line .fit{display:inline-block}
+.intro-line.l4{margin-top:4px}
+#intro-skip{position:absolute;right:16px;bottom:calc(20px + env(safe-area-inset-bottom));background:var(--paper);color:var(--ink);border:1px solid var(--ink);min-height:44px;padding:8px 16px;border-radius:14px;z-index:2}
+.intro.is-leaving .intro-text{opacity:0;filter:blur(6px)}
+.intro.is-leaving .intro-cloud.c3{transform:translateX(130vw);transition-delay:.5s}
+.intro.is-leaving .intro-cloud.c1{transform:translateX(-130vw);transition-delay:.85s}
+.intro.is-leaving .intro-cloud.c4{transform:translateX(130vw);transition-delay:1.2s}
+.intro.is-leaving .intro-cloud.c2{transform:translateX(-130vw);transition-delay:1.55s}
+.intro.is-leaving #intro-skip{opacity:0;pointer-events:none}
+@media (prefers-reduced-motion:reduce){.intro-cloud,.intro-text{transition-duration:.2s!important;transition-delay:0s!important}}
+/* V17 · Carte nue : aucun bouton, sauf + et − sans fond. Parcouru et reste en texte seul. */
+.navigator-page .dashboard,.navigator-page .map-tools,.navigator-page .map-status,.navigator-page .places-toggle,.navigator-page #places-panel,.navigator-page .app-nav,.navigator-page .dock-links,.navigator-page .map-header button{display:none!important}
+.navigator-page .instruction{display:none}
+.navigator-page.is-off .instruction,.navigator-page.is-demo .instruction{display:block;top:calc(12px + env(safe-area-inset-top));left:50%;right:auto;transform:translateX(-50%);width:max-content;max-width:calc(100% - 28px);border-radius:999px;padding:9px 16px;text-align:center;background:var(--tile);color:var(--paper);border:0;box-shadow:0 4px 14px #2F2A2630;pointer-events:none}
+.navigator-page.is-off .instruction>:not(#off-alert),.navigator-page.is-demo .instruction>:not(#demo-banner){display:none}
+#off-alert{background:none;border:0;padding:0;margin:0;font-size:14px;font-weight:800;color:var(--paper)}
+#demo-banner{background:none;padding:0;margin:0;color:var(--paper);font-size:12px;font-weight:800}
+.zoom-tools{position:absolute;z-index:3;right:8px;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;gap:4px}
+.zoom-tools button{width:52px;min-height:52px;padding:0;border:0;border-radius:0;background:none;box-shadow:none;color:var(--ink);font-size:34px;font-weight:300;line-height:1;text-shadow:0 0 3px var(--paper),0 0 6px var(--paper),0 0 10px var(--paper)}
+.metres-strip{position:fixed;z-index:3;left:0;right:0;bottom:0;display:flex;justify-content:space-around;gap:12px;padding:18px 16px calc(14px + env(safe-area-inset-bottom));background:linear-gradient(to top,var(--paper) 55%,#FFF9F300);font-size:13px;color:var(--ink);pointer-events:none}
+.metres-strip b{display:block;font-size:24px;letter-spacing:-.03em;line-height:1.1}
+/* V17 · Pause : un seul bouton sur la carte, écrans CARNET / REPRENDRE / TERMINER. */
+.metres-strip button{pointer-events:auto;min-height:48px;padding:8px 18px;border-radius:999px;background:var(--paper);color:var(--ink);border:1px solid var(--ink);font-weight:800;font-size:14px;white-space:nowrap;align-self:center}
+.pause-actions{display:grid;gap:10px;margin:16px 0}
+.pause-actions button{min-height:56px;font-size:16px;font-weight:800}
+#end-summary{font-size:15px}

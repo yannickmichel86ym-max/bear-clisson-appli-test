@@ -2,9 +2,13 @@ import * as maplibregl from './vendor/maplibre-gl.mjs';
 maplibregl.setWorkerUrl(new URL('./vendor/maplibre-gl-worker.mjs', import.meta.url).href);
 const $=id=>document.getElementById(id);
 const STYLE='https://tiles.openfreemap.org/styles/liberty';
-const GPS={maxAccuracy:45,maxAge:15000,offThreshold:75,clearThreshold:50,confirmMs:3000};
+const GPS={maxAccuracy:45,maxAge:15000,offThreshold:75,clearThreshold:50,confirmMs:3000,senseMeters:35};
+// Parcouru : tout ce qui est réellement marché (détours compris). Bruit au repos et sauts impossibles exclus.
+const WALK={maxSpeed:3,jitter:4};
 let styleTimer=null;
 let rallyeFix=null;
+// Bouton « Partir à l'aventure » de l'accueil : démarre le GPS, sans bouton sur la carte.
+window.bearStartGps=()=>{if(active&&!gpsRunning&&!demoRunning)startGps();};
 // Lecture seule du GPS réel existant : aucun second suivi, aucune position de démo.
 window.bearRallyeFix=()=>gpsRunning&&!demoRunning&&!document.hidden?rallyeFix:null;
 // Démo : même lecture passive, sur le point de la démo affiché (aucun GPS réel). Ne sert qu'au halo de découverte.
@@ -52,9 +56,10 @@ let map, active, marker, segLengths=[], cumul=[], totalMeters=0;
 let loopRoute=null, loopSession=null, entryCandidate=null;
 let matched=null, lastFix=null, follow=true, heading=null, mapReady=false;
 let gpsReliable=false, minFixTime=0;
+let walked=0, walkedSinceAnchor=0, countedFix=null, userMoveAt=0, userZoom=null;
+let paused=false, track=[], lastOffAlert=-Infinity, reanchorPending=false, keepPaused=false, balade=null;
 let gpsRunning=false, gpsSession=0, watch=null, freshnessTimer=null, lastSampleTime=0;
-let offSince=null,lastOffSample=null,offRoute=false,alertSpoken=false,audioEnabled=false,audioChosen=false;
-let lastAlertAttempt=-Infinity;
+let offSince=null,lastOffSample=null,offRoute=false,audioEnabled=false,audioChosen=false;
 let demoRunning=false,demoPaused=false,demoAlong=0,demoTimer=null,demoLast=0;
 let milestoneFloor=null, milestonePending=null, lastVoiceTime=-Infinity, speechBusy=false, speechToken=0;
 const VOICE_GAP=12000;
@@ -69,7 +74,107 @@ function metres(a,b){
 const fmtKm=m=>(m/1000).toLocaleString('fr-FR',{maximumFractionDigits:2,minimumFractionDigits:2})+' km';
 const fmtM=m=>Math.round(m).toLocaleString('fr-FR')+' m';
 function computeProgress(positions,here,previous=null,timestamp=Date.now(),accuracy=5){
- return LoopNavigation.project(loopRoute,here,previous,timestamp,accuracy);
+ return LoopNavigation.project(loopRoute,here,previous,timestamp,accuracy,walkedSinceAnchor);
+}
+// Ajoute au parcouru la distance réellement marchée entre deux mesures fiables, et enregistre le tracé.
+function countWalk(lat,lon,accuracy,timestamp){
+ if(paused){countedFix=null;return;}
+ if(!countedFix){countedFix={lat,lon,t:timestamp};recordPoint(lat,lon,timestamp,track.length>0);return;}
+ if(timestamp<=countedFix.t)return;
+ const d=metres([countedFix.lat,countedFix.lon],[lat,lon]);
+ const dt=(timestamp-countedFix.t)/1000;
+ // Bruit de mesure à l'arrêt : sous ce seuil, on ne bouge pas la référence.
+ if(d<Math.max(WALK.jitter,accuracy*.5))return;
+ // Saut impossible (téléportation, longue interruption) : on repart de la nouvelle mesure, sans compter.
+ if(d>WALK.maxSpeed*dt+2*accuracy+10){countedFix={lat,lon,t:timestamp};return;}
+ walked+=d;walkedSinceAnchor+=d;countedFix={lat,lon,t:timestamp};
+ recordPoint(lat,lon,timestamp);
+}
+// Enregistre un point du parcours ; afterGap marque la reprise après une interruption (pas de droite fictive).
+function recordPoint(lat,lon,t,afterGap=false){
+ track.push(afterGap?{lat,lon,t,gap:1}:{lat,lon,t});
+ refreshTrack();
+ saveBalade();
+}
+function refreshTrack(){
+ const segs=[[]];
+ for(const p of track){if(p.gap&&segs.at(-1).length)segs.push([]);segs.at(-1).push([p.lat,p.lon]);}
+ map?.getSource('track')?.setData({type:'Feature',properties:{},geometry:{type:'MultiLineString',coordinates:segs.filter(s=>s.length>1).map(s=>s.map(([la,lo])=>[lo,la]))}});
+}
+// Alerte vocale hors trace : à la détection, puis une fois par minute tant que l'écart dure.
+function speakAlert(){
+ if(!audioEnabled||!gpsRunning||demoRunning||document.hidden)return;
+ speak('Attention. Vous êtes éloigné de la trace. Vérifiez la carte.',true);
+}
+// Distance restante estimée hors trace, à partir du point du tracé le plus proche : le compteur ne se fige pas.
+function offTraceDisplay(nearest){
+ if(!loopSession||demoRunning)return;
+ const d=LoopNavigation.delta(nearest.along,loopSession.previous.along,totalMeters);
+ if(Math.abs(d)>walkedSinceAnchor+60)return;
+ const travelled=Math.max(0,Math.min(totalMeters,loopSession.unwrapped+d*loopSession.direction));
+ $('metres-left').textContent=fmtKm(totalMeters-travelled);
+}
+// Pause : l'écran pause propose CARNET / REPRENDRE / TERMINER.
+function resumeRecording(){
+ if(!paused)return;
+ paused=false;countedFix=null;walkedSinceAnchor=0;matched=null;reanchorPending=true;saveBalade();
+ $('pause-open').textContent='❚❚ Pause';
+}
+function openPauseSheet(){
+ paused=true;keepPaused=false;saveBalade();
+ $('pause-open').textContent='● En pause';
+ const sheet=$('pause-sheet');
+ if(!sheet.open){try{sheet.showModal();}catch{sheet.setAttribute('open','');}}
+}
+// Balade : mémoire locale (fichier balade-memoire.js), identifiant unique horodaté.
+// Reprise après fermeture de l'appli, batterie vide, appel…
+function newBalade(){balade={id:globalThis.BaladeMemoire?.newId()??'balade-'+Date.now(),startedAt:Date.now()};walked=0;walkedSinceAnchor=0;countedFix=null;track=[];paused=false;loopSession=null;saveBalade();}
+function saveBalade(){
+ if(!balade)return;
+ globalThis.BaladeMemoire?.saveActive({...balade,walked,track,loop:loopSession,updatedAt:Date.now()});
+}
+function loadSavedBalade(){return globalThis.BaladeMemoire?.loadActive()??null;}
+function restoreBalade(saved){
+ balade={id:saved.id,startedAt:saved.startedAt};walked=Number(saved.walked)||0;track=saved.track;
+ loopSession=saved.loop||null;walkedSinceAnchor=0;countedFix=null;paused=false;matched=null;reanchorPending=!!loopSession;
+}
+// Démarrer ou reprendre : une balade enregistrée reprend là où elle s'est arrêtée.
+function beginBalade(){
+ if(balade)return;
+ const saved=loadSavedBalade();
+ if(saved)restoreBalade(saved);else newBalade();
+}
+// Réinitialiser le GPS : l'ancienne balade part dans l'historique, une nouvelle commence.
+function restartBalade(){
+ if(balade&&track.length)globalThis.BaladeMemoire?.archive({id:balade.id,startedAt:balade.startedAt,endedAt:Date.now(),walked:Math.round(walked),points:track.length});
+ globalThis.globalThis.BaladeMemoire?.clearActive();balade=null;milestoneFloor=null;newBalade();
+}
+function finishBalade(){
+ paused=false;if(gpsRunning)stopGps();
+ if(!balade)return;
+ const summary={id:balade.id,startedAt:balade.startedAt,endedAt:Date.now(),walked:Math.round(walked),points:track.length};
+ try{
+  globalThis.BaladeMemoire?.archive(summary);globalThis.BaladeMemoire?.clearActive();
+ }catch{/* Sans stockage, la fin reste affichée à l'écran. */}
+ balade=null;loopSession=null;track=[];walked=0;walkedSinceAnchor=0;countedFix=null;reanchorPending=false;
+ refreshTrack();
+ const when=new Date(summary.startedAt).toLocaleString('fr-FR',{dateStyle:'short',timeStyle:'short'});
+ $('end-summary').textContent=`${fmtKm(summary.walked)} parcourus · ${summary.points} points · démarrée le ${when} · identifiant ${summary.id}`;
+ const sheet=$('end-sheet');
+ if(!sheet.open){try{sheet.showModal();}catch{sheet.setAttribute('open','');}}
+}
+// Bandeau hors trace et mode démo : seuls ces deux états affichent du texte en haut de l'écran.
+function syncMode(){
+ const body=document.body;if(!body)return;
+ body.classList.toggle('is-off',!!offRoute);
+ body.classList.toggle('is-demo',!!demoRunning);
+}
+// Zoom + / − : le niveau choisi reste jusqu'à ce que l'utilisateur le change.
+function zoomBy(step){
+ if(!mapReady)return;
+ const z=Math.max(map.getMinZoom(),Math.min(map.getMaxZoom(),map.getZoom()+step));
+ userZoom=z;follow=true;userMoveAt=0;
+ map.easeTo({zoom:z,duration:300});
 }
 function status(message,warn=false){$('guidance').textContent=message;$('guidance').classList.toggle('warn',warn);}
 function line(points){return {type:'Feature',properties:{},geometry:{type:'LineString',coordinates:points.map(p=>[p[1],p[0]])}};}
@@ -80,6 +185,17 @@ function atDistance(distance){
  const index=Math.min(lo,active.points.length-2),f=segLengths[index]?Math.min(1,(along-cumul[index])/segLengths[index]):0;
  const a=active.points[index],b=active.points[index+1];
  return {along,index,fraction:f,point:[a[0]+f*(b[0]-a[0]),a[1]+f*(b[1]-a[1])]};
+}
+// Trace entre deux positions (mètres le long de la boucle), sans confondre avec le raccord du zéro.
+function trailBetween(a,b){
+ const s=atDistance(a),e=atDistance(b);
+ return [s.point,...active.points.slice(s.index+1,e.index+1),e.point];
+}
+// Partie parcourue quand l'utilisateur marche à contre-sens : de sa position jusqu'au point d'entrée.
+function reverseParts(projection){
+ const entry=loopSession.entry.along,here=projection.along;
+ if(loopSession.unwrapped>=totalMeters)return [trailBetween(0,totalMeters)];
+ return here<=entry?[trailBetween(here,entry)]:[trailBetween(here,totalMeters),trailBetween(0,entry)];
 }
 function bearing(a,b){
  const p=rad(a[0]),q=rad(b[0]),d=rad(b[1]-a[1]);
@@ -93,6 +209,8 @@ function routeHeading(projection){
  return heading;
 }
 function camera(point,course,duration=650){
+ // Sans bouton « Me suivre » : la carte revient suivre le marcheur après 8 s sans geste.
+ if(!follow&&userMoveAt&&Date.now()-userMoveAt>8000)follow=true;
  if(!follow||!mapReady)return;
  // V7 : garder la position au-dessus du panneau flottant, y compris petit écran.
  const height=map.getContainer().clientHeight;
@@ -100,7 +218,7 @@ function camera(point,course,duration=650){
  const rect=map.getContainer().getBoundingClientRect?.();
  const offset=dock&&rect?Math.max(-height*.1,Math.min(height*.19,dock.top-rect.top-72-height/2)):height*.19;
  const view=window.BearImmersion?.camera?.()||{zoom:17.3,pitch:58};
- map.easeTo({center:[point[1],point[0]],zoom:view.zoom,pitch:view.pitch,bearing:course,
+ map.easeTo({center:[point[1],point[0]],zoom:userZoom??view.zoom,pitch:view.pitch,bearing:course,
    offset:[0,offset],duration,essential:false});
 }
 function positionMarker(point,reliable,course=0){
@@ -110,14 +228,14 @@ function positionMarker(point,reliable,course=0){
 }
 function relativeProjection(projection){return {...projection,along:loopSession&&!demoRunning?loopSession.travelled:projection.along};}
 function entryDisplay(){
- $('confirm-entry').hidden=!entryCandidate||!!loopSession;
- $('entry-status').textContent=loopSession?'Km 0 fixé ici · sens de la flèche · retour au point d’entrée':entryCandidate?'Sur la boucle · vérifie le sens de la flèche, puis confirme ton départ':'Départ libre · attends une position fiable sur la boucle';
+ // Plus de confirmation manuelle : le sens se déduit du déplacement GPS (voir updateGpsDisplay).
+ $('confirm-entry').hidden=true;
+ $('entry-status').textContent=loopSession?(loopSession.direction<0?'Km 0 fixé ici · sens détecté à contre-sens de la flèche':'Km 0 fixé ici · sens détecté dans le sens de la flèche')+' · retour au point d’entrée':entryCandidate?'Sur la boucle · le sens se détecte en marchant quelques dizaines de mètres':'Départ libre · attends une position fiable sur la boucle';
 }
-function confirmEntry(){
- if(!gpsRunning||!gpsReliable||!entryCandidate||Date.now()-entryCandidate.timestamp>GPS.maxAge)return;
- loopSession=LoopNavigation.advance(loopRoute,null,entryCandidate,entryCandidate.timestamp);
- matched=entryCandidate;map.getSource('start')?.setData({type:'Feature',properties:{},geometry:{type:'Point',coordinates:[matched.point[1],matched.point[0]]}});entryCandidate=null;entryDisplay();renderProgress(matched,lastFix);announceProgress(relativeProjection(matched),matched.timestamp);
- status('Km 0 ici · suis la trace dans le sens de la flèche');
+function startLoop(candidate,direction){
+ loopSession=LoopNavigation.advance(loopRoute,null,candidate,candidate.timestamp,direction);
+ matched=candidate;map.getSource('start')?.setData({type:'Feature',properties:{},geometry:{type:'Point',coordinates:[matched.point[1],matched.point[0]]}});entryCandidate=null;entryDisplay();renderProgress(matched,lastFix);announceProgress(relativeProjection(matched),matched.timestamp);
+ status(direction<0?'Sens détecté : tu marches à contre-sens de la flèche. Km 0 ici · suis la trace.':'Sens détecté : dans le sens de la flèche. Km 0 ici · suis la trace.');
 }
 function renderProgress(projection,point=projection.point){
  const relative=relativeProjection(projection);
@@ -125,8 +243,13 @@ function renderProgress(projection,point=projection.point){
  if(demoRunning)nextMilestone(projection.along);
  $('progressbar').style.width=pct+'%';$('progressbar').setAttribute('aria-valuenow',Math.round(pct));
  $('progress').textContent=fmtKm(relative.along);$('remaining').textContent=fmtKm(totalMeters-relative.along);
+ // Bandeau sans bouton : parcouru = distance marchée (détours compris), reste = trace restante.
+ $('metres-walked').textContent=fmtKm(demoRunning?relative.along:walked);$('metres-left').textContent=fmtKm(totalMeters-relative.along);
  let done=[...active.points.slice(0,projection.index+1),projection.point];
- if(loopSession&&!demoRunning){
+ if(loopSession&&!demoRunning&&loopSession.direction<0){
+  map.getSource('progress')?.setData({type:'Feature',properties:{},geometry:{type:'MultiLineString',coordinates:reverseParts(projection).map(p=>p.map(v=>[v[1],v[0]]))}});
+  done=null;
+ }else if(loopSession&&!demoRunning){
   const entry=loopSession.entry;
   done=[entry.point,...active.points.slice(entry.index+1,projection.index+1),projection.point];
   if(loopSession.unwrapped<=0)done=[entry.point,entry.point];
@@ -141,7 +264,7 @@ function renderProgress(projection,point=projection.point){
  if(done.length===1)done.push(done[0]);
  map.getSource('progress')?.setData(line(done));
  }
- const course=routeHeading(projection);
+ const course=routeHeading(projection)+(loopSession&&!demoRunning&&loopSession.direction<0?180:0);
  positionMarker(point,demoRunning||gpsReliable,course);camera(point,course,demoRunning?100:650);
 }
 function suspendProgress(message){
@@ -155,14 +278,17 @@ function suspendProgress(message){
  if(lastFix)positionMarker(lastFix,false);
  status(message,true);
 }
-function resetSession(){
+function resetSession(keepLoop=false){
  rallyeFix=null;
- loopSession=null;entryCandidate=null;entryDisplay();
+ if(!keepLoop)loopSession=null;
+ // Balade reprise : le premier point retrouvé devient la nouvelle ancre (pas de saut compté).
+ if(keepLoop&&loopSession)reanchorPending=true;
+ entryCandidate=null;entryDisplay();
  map.getSource('start')?.setData({type:'Feature',properties:{},geometry:{type:'Point',coordinates:[active.points[0][1],active.points[0][0]]}});
  gpsReliable=false;
- milestoneFloor=null;milestonePending=null;lastVoiceTime=-Infinity;
+ if(!keepLoop)milestoneFloor=null;milestonePending=null;lastVoiceTime=-Infinity;
  $('next-announcement').textContent='Prochaine annonce : —';
- matched=null;heading=null;lastFix=null;lastSampleTime=0;offSince=null;lastOffSample=null;offRoute=false;alertSpoken=false;lastAlertAttempt=-Infinity;
+ matched=null;heading=null;lastFix=null;lastSampleTime=0;offSince=null;lastOffSample=null;offRoute=false;
  $('off-alert').hidden=true;marker.getElement().hidden=true;
  $('progress').textContent='—';$('remaining').textContent=fmtKm(totalMeters);$('offset').textContent='—';$('accuracy').textContent='—';
  $('progressbar').style.width='0%';$('progressbar').setAttribute('aria-valuenow','0');
@@ -205,8 +331,7 @@ function speak(text,priority=false,{test=false,onFailure=()=>{}}={}){
 }
 function toggleAudio(){
  audioChosen=true;audioEnabled=!audioEnabled;cancelSpeech();audioLabel();
- if(!audioEnabled&&offRoute)alertSpoken=false;
- if(audioEnabled&&gpsRunning){if(offRoute)speakAlert();else speak('Annonces activées');}
+  if(audioEnabled&&gpsRunning)speak('Annonces activées');
 }
 function testAudio(){
  if(demoRunning){$('audio-status').textContent='Démo silencieuse · arrête la démo pour tester le son.';return;}
@@ -234,14 +359,6 @@ function announceProgress(projection,timestamp){
  const remaining=left<1000?new Intl.NumberFormat('fr-FR',{style:'unit',unit:'meter',unitDisplay:'long',maximumFractionDigits:0}).format(Math.round(left/10)*10):number.format(Math.round(left/1000));
  speak(distance+' '+(km===1?'parcouru':'parcourus')+'. Il reste environ '+remaining+' sur la trace.');
 }
-function speakAlert(){
- if(alertSpoken||Date.now()-lastAlertAttempt<VOICE_GAP)return;
- if(!audioEnabled||!gpsRunning||demoRunning||document.hidden)return;
- lastAlertAttempt=Date.now();
- alertSpoken=true;
- milestonePending=null;
- if(!speak('Attention. Vous êtes éloigné de la trace. Vérifiez la carte.',true,{onFailure:()=>{alertSpoken=false;}}))alertSpoken=false;
-}
 function updateGpsDisplay(lat,lon,accuracy,timestamp=Date.now()){
  if(!gpsRunning||document.hidden)return;
  const now=Date.now();
@@ -253,6 +370,9 @@ function updateGpsDisplay(lat,lon,accuracy,timestamp=Date.now()){
  freshnessTimer=setTimeout(()=>{if(gpsRunning){$('signal').textContent='GPS sans mesure récente';suspendProgress('Signal GPS perdu. Attends une mesure récente.');}},Math.max(1,GPS.maxAge-(now-timestamp)));
  lastFix=[lat,lon];positionMarker(lastFix,false);
  $('accuracy').textContent=fmtM(accuracy);$('signal').textContent=accuracy>GPS.maxAccuracy?'GPS peu précis':'GPS actif';
+ // Pause : la flèche reste visible, rien n'est compté ni enregistré.
+ if(paused){positionMarker(lastFix,true,heading??0);camera(lastFix,heading??0);return;}
+ if(accuracy<=GPS.maxAccuracy)countWalk(lat,lon,accuracy,timestamp);
  const {nearest,projection}=computeProgress(active.points,lastFix,matched,timestamp,accuracy);
  $('offset').textContent=fmtM(nearest.gap);
  if(accuracy>GPS.maxAccuracy){suspendProgress('Précision GPS insuffisante. Progression suspendue.');return;}
@@ -261,28 +381,41 @@ function updateGpsDisplay(lat,lon,accuracy,timestamp=Date.now()){
   milestonePending=null;
   if(offSince===null||lastOffSample===null||timestamp-lastOffSample>GPS.maxAge)offSince=timestamp;
   lastOffSample=timestamp;
-  if(timestamp-offSince>=GPS.confirmMs){offRoute=true;$('off-alert').hidden=false;speakAlert();}
+  if(!offRoute&&timestamp-offSince>=GPS.confirmMs){offRoute=true;lastOffAlert=timestamp;$('off-alert').hidden=false;syncMode();speakAlert();}
  }else{
   offSince=null;lastOffSample=null;
-  if(nearest.gap+accuracy<GPS.clearThreshold){offRoute=false;alertSpoken=false;lastAlertAttempt=-Infinity;$('off-alert').hidden=true;}
+  if(offRoute&&nearest.gap+accuracy<GPS.clearThreshold){offRoute=false;$('off-alert').hidden=true;syncMode();}
  }
+ // Hors trace : le parcours continue d'être enregistré et suivi ; aucune progression n'est figée.
  if(offRoute){
   entryCandidate=null;entryDisplay();
-  // Une suspension masque le bandeau sans effacer l'éloignement confirmé.
-  // Le réafficher seulement après une nouvelle mesure récente et précise.
+  if(timestamp-lastOffAlert>=60000){lastOffAlert=timestamp;speakAlert();}
   $('off-alert').hidden=false;
-  camera(lastFix,heading??0);$('confidence').textContent='Hors trace';status('Éloignement confirmé. Consulte la trace ; aucun détour calculé.',true);return;
+  $('rejoin-text').textContent='Rejoins le tracé · '+fmtM(nearest.gap)+' de la ligne';
+  $('confidence').textContent='Hors trace · parcours enregistré';
+  offTraceDisplay(nearest);
+  positionMarker(lastFix,true,heading??0);camera(lastFix,heading??0);
+  status('Ton parcours est enregistré. Reprise automatique dès que tu rejoins le tracé.',true);
+  return;
  }
- if(lowerGap>GPS.offThreshold){entryCandidate=null;entryDisplay();camera(lastFix,heading??0);$('confidence').textContent='Écart à confirmer';status('Hors parcours estimé : '+fmtM(nearest.gap)+'. Rejoins la trace par tes moyens ; aucun itinéraire calculé.',true);return;}
- if(nearest.gap+accuracy>GPS.clearThreshold){suspendProgress('Proximité de la trace incertaine. Attends une meilleure mesure ; distances figées.');return;}
- if(!projection){camera(lastFix,heading??0);suspendProgress('Position ambiguë à un croisement ou déplacement trop grand. Vérifie la carte. Si interruption prolongée : Réinitialiser le GPS.');return;}
+ if(lowerGap>GPS.offThreshold){entryCandidate=null;entryDisplay();offTraceDisplay(nearest);positionMarker(lastFix,true,heading??0);camera(lastFix,heading??0);$('confidence').textContent='Écart à confirmer';return;}
+ // Zone incertaine (proche de la trace sans projection nette) : on attend une mesure nette, sans message d'erreur.
+ if(nearest.gap+accuracy>GPS.clearThreshold||!projection){offTraceDisplay(nearest);positionMarker(lastFix,false);camera(lastFix,heading??0);status(nearest.gap+accuracy>GPS.clearThreshold?'Proximité de la trace incertaine. Attends une meilleure mesure.':'Position ambiguë à un croisement. Le suivi reprend dès que la trace est nette.');return;}
  gpsReliable=true;
  if(!loopSession){
-  entryCandidate={...projection,timestamp};entryDisplay();
-  const course=routeHeading(projection);positionMarker(lastFix,true,course);camera(lastFix,course);
-  $('confidence').textContent='Départ à confirmer';status('Sur la boucle · confirme le sens de la flèche');return;
+  entryCandidate=entryCandidate||{...projection,timestamp};
+  // Sens déduit du déplacement réel depuis le premier point fiable : aucun bouton à toucher.
+  const moved=LoopNavigation.delta(projection.along,entryCandidate.along,totalMeters);
+  if(Math.abs(moved)<GPS.senseMeters){
+   entryDisplay();
+   const course=routeHeading(projection);positionMarker(lastFix,true,course);camera(lastFix,course);
+   $('confidence').textContent='Départ à confirmer';status('Sur la boucle · marche quelques dizaines de mètres, le sens se détecte seul.');return;
+  }
+  startLoop(entryCandidate,moved>0?1:-1);
  }
- loopSession=LoopNavigation.advance(loopRoute,loopSession,projection,timestamp);
+ // Reprise après pause : le premier point retenu devient la nouvelle ancre, sans saut compté.
+ if(reanchorPending){loopSession={...loopSession,previous:{...projection,timestamp}};reanchorPending=false;}
+ loopSession=LoopNavigation.advance(loopRoute,loopSession,projection,timestamp);walkedSinceAnchor=0;
  matched={...projection,timestamp};renderProgress(matched,lastFix);
  announceProgress(relativeProjection(matched),timestamp);
  $('confidence').textContent='Projection indicative';
@@ -303,7 +436,7 @@ function startGps(){
  if(gpsRunning||!active)return;
  if(!('geolocation' in navigator)){status('Géolocalisation non disponible dans ce navigateur.',true);return;}
  if(!window.isSecureContext){status('GPS : une adresse HTTPS ou localhost est nécessaire.',true);return;}
- stopDemo(false);resetSession();follow=true;gpsRunning=true;minFixTime=Date.now();const session=++gpsSession;
+ stopDemo(false);beginBalade();resetSession(true);if(loopSession&&mapReady){try{renderProgress(loopSession.previous,loopSession.previous.point);}catch{/* Affichage rétabli au prochain relevé. */}}follow=true;gpsRunning=true;minFixTime=Date.now();const session=++gpsSession;
  if(!audioChosen)audioEnabled=true;
  void requestWakeLock();
  // Amorçage explicite après geste utilisateur ; la disponibilité audio dépend de Safari.
@@ -321,10 +454,10 @@ function startGps(){
  }catch{stopGps();status('Impossible de démarrer le GPS. Vérifie les permissions du navigateur.',true);}
 }
 function stopDemo(message=true){
- clearInterval(demoTimer);demoTimer=null;demoRunning=false;demoPaused=false;
+ clearInterval(demoTimer);demoTimer=null;demoRunning=false;demoPaused=false;syncMode();
  $('demo-banner').hidden=true;$('demo-pause').hidden=true;$('demo-stop').hidden=true;
  $('demo').setAttribute('aria-pressed','false');
- if(message){resetSession();$('signal').textContent='GPS inactif';$('confidence').textContent='Démo arrêtée';status('Démo arrêtée. Démarre le GPS pour marcher.');}
+ if(message){resetSession(true);$('signal').textContent='GPS inactif';$('confidence').textContent='Démo arrêtée';status('Démo arrêtée. Démarre le GPS pour marcher.');}
 }
 function demoTick(now=performance.now()){
  if(!demoRunning)return;
@@ -336,8 +469,8 @@ function demoTick(now=performance.now()){
 }
 function startDemo(){
  if(!active)return;
- if(gpsRunning)stopGps();stopDemo(false);resetSession();
- cancelSpeech();demoRunning=true;audioLabel();demoAlong=0;demoLast=performance.now();follow=true;
+ if(gpsRunning)stopGps();stopDemo(false);resetSession(true);
+ cancelSpeech();demoRunning=true;syncMode();audioLabel();demoAlong=0;demoLast=performance.now();follow=true;
  $('demo-banner').hidden=false;$('demo-banner').textContent='DÉMONSTRATION · ×10 · GPS INACTIF';
  $('demo-pause').hidden=false;$('demo-pause').textContent='Pause';$('demo-stop').hidden=false;
  $('demo').setAttribute('aria-pressed','true');$('signal').textContent='GPS inactif · Démo';
@@ -387,14 +520,15 @@ async function main(){
   totalMeters=cumul.at(-1);$('total').textContent=fmtKm(totalMeters);$('remaining').textContent=fmtKm(totalMeters);
   const first=active.points[0];
   map=new maplibregl.Map({container:'map',style:FALLBACK_STYLE,
-   center:[first[1],first[0]],zoom:17.3,pitch:58,bearing:bearing(first,atDistance(35).point),attributionControl:true});
+   center:[first[1],first[0]],zoom:17.3,pitch:58,bearing:bearing(first,atDistance(35).point),attributionControl:{compact:false}});
   const el=document.createElement('div');el.className='user-arrow';el.setAttribute('aria-label','Position indicative');el.hidden=true;
   marker=new maplibregl.Marker({element:el,rotationAlignment:'map',pitchAlignment:'viewport'}).setLngLat([first[1],first[0]]).addTo(map);
   const addTrace=()=>{
    if(map.getSource('route'))return;
    map.addSource('route',{type:'geojson',data:line(active.points)});
    map.addSource('progress',{type:'geojson',data:line([first,first])});
-   for(const [id,source,color,width] of [['route-halo','route','#FFF9F3',13],['route-bright','route','#C96E4B',8],['progress-halo','progress','#FFF9F3',10],['progress-bright','progress','#2F2A26',5]]){
+   map.addSource('track',{type:'geojson',data:line([first,first])});
+   for(const [id,source,color,width] of [['route-halo','route','#FFF9F3',13],['route-bright','route','#1F4E79',8],['progress-halo','progress','#FFF9F3',10],['progress-bright','progress','#8EC9F3',5],['track-line','track','#C96E4B',4]]){
     map.addLayer({id,type:'line',source,layout:{'line-cap':'round','line-join':'round'},paint:{'line-color':color,'line-width':width}});
    }
    for(const [id,p,color] of [['start',loopSession?.entry.point||first,'#C96E4B'],['end',active.points.at(-1),'#7FA36A']]){
@@ -408,18 +542,35 @@ async function main(){
   });
   map.on('error',()=>{$('connection').textContent='Fond indisponible ou incomplet · trace conservée';});
   map.on('resize',()=>{if(follow&&mapReady)resumeFollow();});
-  map.on('dragstart',e=>{if(e.originalEvent)follow=false;});
-  map.on('zoomstart',e=>{if(e.originalEvent)follow=false;});
+  map.on('dragstart',e=>{if(e.originalEvent){follow=false;userMoveAt=Date.now();}});
+  map.on('zoomstart',e=>{if(e.originalEvent){follow=false;userMoveAt=Date.now();}});
+  map.on('zoomend',e=>{if(e.originalEvent)userZoom=map.getZoom();});
   // Coque + trace prêtes même sans réseau : ne jamais attendre le style distant pour le GPS.
-  await new Promise(resolve=>map.on('load',resolve));addTrace();mapReady=true;
+  await new Promise(resolve=>map.on('load',resolve));addTrace();mapReady=true;refreshTrack();
   window.BearPhotoSpots?.start(map,maplibregl.Marker);
   window.BearPlacesMap?.start(map,maplibregl.Marker);
+  // Dézoom minimal : la trace entière tient à l'écran (vue d'ensemble), sans bouton dédié.
+  try{const b=new maplibregl.LngLatBounds();active.points.forEach(p=>b.extend([p[1],p[0]]));const cam=map.cameraForBounds(b,{padding:40,pitch:0,bearing:0});if(cam?.zoom)map.setMinZoom(Math.max(10,cam.zoom-.1));}catch{/* Bornes de zoom par défaut. */}
   $('fit').onclick=overview;$('center').onclick=resumeFollow;
-  $('confirm-entry').onclick=confirmEntry;
-  $('audio').onclick=toggleAudio;
+  $('zoom-in').onclick=()=>zoomBy(1);$('zoom-out').onclick=()=>zoomBy(-1);
+  $('pause-open').onclick=openPauseSheet;
+  $('pause-resume').onclick=()=>{$('pause-sheet').close();};
+  $('pause-carnet').onclick=()=>{keepPaused=true;$('pause-sheet').close();$('rallye-open')?.click();};
+  $('pause-end').onclick=()=>{$('pause-sheet').close();finishBalade();};
+  $('pause-sheet').onclose=()=>{if(!keepPaused&&paused)resumeRecording();};
+  $('end-close').onclick=()=>$('end-sheet').close();
+  // Balade en cours trouvée à l'ouverture : reprendre ou terminer, jamais de reprise silencieuse.
+  $('resume-continue').onclick=()=>{$('resume-sheet').close();$('enter')?.click?.();};
+  $('resume-finish').onclick=()=>{$('resume-sheet').close();const pending=loadSavedBalade();if(pending){restoreBalade(pending);finishBalade();}};
+  const pendingBalade=loadSavedBalade();
+  if(pendingBalade){
+   $('resume-summary').textContent=`Identifiant ${pendingBalade.id} · ${fmtKm(Number(pendingBalade.walked)||0)} parcourus · démarrée le ${new Date(pendingBalade.startedAt).toLocaleString('fr-FR',{dateStyle:'short',timeStyle:'short'})}`;
+   const sheet=$('resume-sheet');if(!sheet.open){try{sheet.showModal();}catch{sheet.setAttribute('open','');}}
+  }
+    $('audio').onclick=toggleAudio;
   $('audio-test').onclick=testAudio;
   $('wake').onclick=toggleWakeLock;
- $('reset-gps').onclick=()=>{if(gpsRunning){stopGps();startGps();}else startGps();};
+ $('reset-gps').onclick=()=>{if(gpsRunning)stopGps();restartBalade();startGps();};
  $('toggle').onclick=()=>gpsRunning?stopGps():startGps();$('demo').onclick=startDemo;
   $('demo-stop').onclick=()=>stopDemo();
   $('demo-pause').onclick=()=>{
@@ -444,7 +595,8 @@ async function main(){
  }catch(error){status('Navigation indisponible : '+error.message,true);$('confidence').textContent='Erreur de chargement';}
 }
 window.addEventListener('online',updateConnection);window.addEventListener('offline',updateConnection);
-window.addEventListener('pagehide',()=>{if(gpsRunning)stopGps();if(demoRunning)stopDemo();});
+window.addEventListener('pagehide',()=>{saveBalade();if(gpsRunning)stopGps();if(demoRunning)stopDemo();});
+document.addEventListener('visibilitychange',()=>{if(document.hidden)saveBalade();});
 document.addEventListener('visibilitychange',()=>{
  if(document.hidden){
   releaseWakeLock();

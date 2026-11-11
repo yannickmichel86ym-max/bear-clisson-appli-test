@@ -22,9 +22,23 @@
 <script src="./accueil.js" defer></script>
 <script src="./nearby-me.js" defer></script>
 <script src="./places-map.js" defer></script>
+<script src="./balade-memoire.js"></script>
 <script type="module" src="./navigation.js"></script>
 </head>
 <body class="navigator-page">
+<div id="intro" class="intro" aria-label="Bienvenue à Clisson Ours City">
+ <svg class="intro-cloud c1" viewBox="0 0 200 110" aria-hidden="true"><g fill="#fff"><circle cx="60" cy="70" r="36"/><circle cx="110" cy="50" r="46"/><circle cx="150" cy="75" r="30"/><rect x="40" y="70" width="130" height="36" rx="18"/></g></svg>
+ <svg class="intro-cloud c2" viewBox="0 0 200 110" aria-hidden="true"><g fill="#fff"><circle cx="60" cy="70" r="36"/><circle cx="110" cy="50" r="46"/><circle cx="150" cy="75" r="30"/><rect x="40" y="70" width="130" height="36" rx="18"/></g></svg>
+ <svg class="intro-cloud c3" viewBox="0 0 200 110" aria-hidden="true"><g fill="#fff"><circle cx="60" cy="70" r="36"/><circle cx="110" cy="50" r="46"/><circle cx="150" cy="75" r="30"/><rect x="40" y="70" width="130" height="36" rx="18"/></g></svg>
+ <svg class="intro-cloud c4" viewBox="0 0 200 110" aria-hidden="true"><g fill="#fff"><circle cx="60" cy="70" r="36"/><circle cx="110" cy="50" r="46"/><circle cx="150" cy="75" r="30"/><rect x="40" y="70" width="130" height="36" rx="18"/></g></svg>
+ <div class="intro-text" aria-hidden="true">
+  <p class="intro-line l1">Bienvenue</p>
+  <p class="intro-line l2">à</p>
+  <p class="intro-line l3"><span class="fit"><span>CLISSON</span></span></p>
+  <p class="intro-line l4"><span class="fit"><span>OURS CITY</span></span></p>
+ </div>
+ <button id="intro-skip" type="button" aria-label="Passer l'introduction">Passer</button>
+</div>
 <section id="welcome" aria-label="Accueil : choisis ton ours">
  <figure class="cover-art"><img src="./assets/brand/clisson-sevre-photo-fournie.jpg" alt="Vue de Clisson sur la Sèvre, le pont et les maisons aux toits de tuiles" width="679" height="450"></figure>
  <div class="cover-top"><span>AVENTURE À CLISSON</span></div>
@@ -48,7 +62,7 @@
 <main>
   <div class="instruction">
    <div id="demo-banner" role="status" hidden>DÉMONSTRATION · GPS INACTIF</div>
-   <div id="off-alert" role="alert" hidden>⚠ HORS TRACE<br><small>Arrête-toi pour vérifier la carte.</small></div>
+   <div id="off-alert" role="status" hidden><span id="rejoin-text">Rejoins le tracé</span></div>
 
    <h1 id="guidance" aria-live="polite">Chargement de la trace…</h1>
    <p id="next-announcement">Prochaine annonce : —</p>
@@ -57,6 +71,10 @@
  <section class="map-area" aria-label="Navigation pédestre">
   <div id="map" role="region" tabindex="0" aria-label="Carte interactive en perspective" aria-describedby="map-help"></div>
 
+  <div class="zoom-tools">
+   <button type="button" id="zoom-in" aria-label="Zoomer">+</button>
+   <button type="button" id="zoom-out" aria-label="Dézoomer jusqu’à la vue d’ensemble">−</button>
+  </div>
   <div class="map-tools">
    <button type="button" id="fit" aria-label="Vue d’ensemble, carte à plat vers le nord" disabled>Vue d’ensemble</button>
    <button type="button" id="center" aria-label="Me suivre en perspective dans le sens de la trace" disabled>➤ Me suivre</button>
@@ -94,6 +112,7 @@
   <p class="places-status places-info" id="places-info" role="status" aria-live="polite">Gros cercle = plusieurs lieux : touche-le pour zoomer.</p>
   <p class="places-source" id="places-source"><a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">© contributeurs OpenStreetMap · ODbL</a> <span id="places-source-note">Repères indicatifs, sans partenariat commercial.</span></p>
  </aside>
+ <div class="metres-strip" aria-label="Distances"><span>Parcouru <b id="metres-walked">—</b></span><button type="button" id="pause-open" aria-label="Pause : ouvrir l’écran de pause">❚❚ Pause</button><span>Reste <b id="metres-left">—</b></span></div>
  <section class="dashboard" id="navigation" tabindex="-1" aria-label="Commandes et état du guidage">
   <div class="journey"><strong>La Méditation de Papa Ours</strong><span id="total">—</span></div>
   <div class="metrics"><span>Parcouru <b id="progress">—</b></span><span>Reste <b id="remaining">—</b></span><span>Écart <b id="offset">—</b></span><span>Précision <b id="accuracy">—</b></span></div>
@@ -178,5 +197,55 @@
 <script type="module" src="./partner-offers.mjs"></script>
 <script src="./photo-spots.js" defer></script><script src="./interface-v7.js" defer></script><script src="./partners-v7.js" defer></script>
 <noscript>JavaScript est nécessaire pour charger la trace et la carte.</noscript>
+<dialog id="pause-sheet" aria-labelledby="pause-title">
+ <div class="sheet-title"><div><p class="eyebrow">PAUSE</p><h2 id="pause-title">Ta balade est en pause</h2></div></div>
+ <div class="pause-actions">
+  <button type="button" id="pause-carnet" class="primary" aria-label="Ouvrir le carnet de l’Ours">CARNET</button>
+  <button type="button" id="pause-resume" aria-label="Reprendre l’enregistrement du parcours">REPRENDRE</button>
+  <button type="button" id="pause-end" aria-label="Terminer la balade et proposer le partage du parcours">TERMINER</button>
+ </div>
+</dialog>
+<dialog id="end-sheet" aria-labelledby="end-title">
+ <div class="sheet-title"><div><p class="eyebrow">BALADE TERMINÉE</p><h2 id="end-title">Ta balade est enregistrée</h2></div><button type="button" id="end-close" aria-label="Fermer l’écran de fin de balade">✕</button></div>
+ <p id="end-summary"></p>
+</dialog>
+<dialog id="resume-sheet" aria-labelledby="resume-title">
+ <div class="sheet-title"><div><p class="eyebrow">BALADE EN COURS</p><h2 id="resume-title">Tu as une balade en cours</h2></div></div>
+ <p id="resume-summary"></p>
+ <div class="pause-actions">
+  <button type="button" id="resume-continue" class="primary" aria-label="Reprendre ma balade en cours là où elle s’est arrêtée">REPRENDRE MA BALADE</button>
+  <button type="button" id="resume-finish" aria-label="Terminer cette balade et garder son enregistrement">TERMINER</button>
+ </div>
+</dialog>
+<script>
+// V17 · Intro : CLISSON et OURS CITY prennent toute la largeur, puis le texte s'efface et les nuages sortent.
+(function(){
+ var intro=document.getElementById('intro');if(!intro)return;
+ var reduce=!!(window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches);
+ var text=intro.querySelector('.intro-text');
+ function fit(){
+  var cs=getComputedStyle(text),avail=text.clientWidth-parseFloat(cs.paddingLeft)-parseFloat(cs.paddingRight);if(!(avail>0))return;
+  intro.querySelectorAll('.fit').forEach(function(f){
+   f.style.fontSize='100px';
+   var w=f.firstElementChild.getBoundingClientRect().width;
+   if(w)f.style.fontSize=(100*avail/w)+'px';
+  });
+ }
+ fit();window.addEventListener('resize',fit);
+ var timers=[],done=false;
+ function finish(){if(done)return;done=true;intro.hidden=true;}
+ function leave(){
+  if(done||intro.classList.contains('is-leaving'))return;
+  intro.classList.add('is-leaving');
+  timers.push(setTimeout(finish,reduce?300:2800));
+ }
+ timers.push(setTimeout(leave,reduce?400:2600));
+ document.getElementById('intro-skip').addEventListener('click',function(){
+  timers.forEach(clearTimeout);timers=[];
+  intro.classList.add('is-leaving');
+  timers.push(setTimeout(finish,350));
+ });
+})();
+</script>
 </body>
 </html>

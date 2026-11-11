@@ -5,7 +5,7 @@
  const homeState=on=>background.forEach(node=>{node.inert=on;});
  homeState(true);
  const enter=()=>{homeState(false);welcome.hidden=true;el('map').focus();window.dispatchEvent(new Event('resize'));};
- el('enter').onclick=enter;
+ el('enter').onclick=()=>{enter();window.bearStartGps?.();};
  el('preview').onclick=()=>{enter();if(!el('fit').disabled)el('fit').click();};
  el('try-demo').onclick=()=>{if(el('demo').disabled)return;enter();el('demo').click();};
  el('home').onclick=()=>{welcome.hidden=false;homeState(true);el('enter').focus();};
