@@ -399,3 +399,9 @@ a{color:var(--river)}
 .cover-copy h2{font-size:clamp(30px,8.4vw,52px);line-height:1.05;margin:0 0 6px;font-family:Georgia,serif;font-weight:500}
 .cover-copy h2.cover-line2{margin-bottom:18px}
 .gallery-title{font-size:30px;font-weight:800;letter-spacing:-.02em;line-height:1.1;margin:0 0 8px;color:var(--ink)}
+/* V17.6 · Titre d'intro : plus de hauteur sur iPhone (lettres et espaces verticaux). */
+.intro-text{gap:4vh}
+.intro-line.l1{font-size:clamp(54px,17vw,96px)}
+.intro-line.l2{font-size:clamp(40px,12vw,64px)}
+.intro-line.l3{margin-top:3vh;line-height:1.2}
+.intro-line.l4{margin-top:2vh;line-height:1.2}
