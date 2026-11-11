@@ -65,6 +65,29 @@
         map.getSource(SOURCE)?.setData?.(data);
       }catch{ /* style en cours de chargement : le ramassage reste possible */ }
     }
+    // Son discret « ring » à chaque goutte, synthétisé (aucun fichier). Débloqué au premier toucher (iOS).
+    let audioCtx=null;
+    function unlockSound(){
+      try{
+        const AC=win.AudioContext||win.webkitAudioContext;if(!AC)return;
+        audioCtx=audioCtx||new AC();
+        if(audioCtx.state==='suspended')audioCtx.resume?.();
+      }catch{/* Son indisponible : le ramassage reste visible. */}
+    }
+    function chime(){
+      try{
+        if(!audioCtx||audioCtx.state!=='running')return;
+        const t=audioCtx.currentTime;
+        for(const [freq,delay] of [[1318,0],[1760,0.07]]){
+          const o=audioCtx.createOscillator(),g=audioCtx.createGain();
+          o.type='sine';o.frequency.setValueAtTime(freq,t+delay);
+          g.gain.setValueAtTime(0.0001,t+delay);
+          g.gain.exponentialRampToValueAtTime(0.14,t+delay+0.01);
+          g.gain.exponentialRampToValueAtTime(0.0001,t+delay+0.18);
+          o.connect(g).connect(audioCtx.destination);o.start(t+delay);o.stop(t+delay+0.2);
+        }
+      }catch{/* Son indisponible : rien à faire. */}
+    }
     function tick(fix=getFix(),now=Date.now()){
       const ok=readFix(fix,now);
       if(!ok||doc.hidden)return [];
@@ -76,12 +99,14 @@
       if(got.length){
         savePicked(storage,picked);
         toast(got.length===1?'🍯 Une goutte de miel ramassée !':'🍯 '+got.length+' gouttes de miel ramassées !');
+        chime();
         try{win.navigator?.vibrate?.(30);}catch{}
         count();draw();
       }
       return got;
     }
     count();draw();
+    doc.addEventListener?.('pointerdown',unlockSound,{passive:true});
     map.on?.('style.load',draw);
     const timer=win.setInterval?.(()=>{if(!doc.hidden)tick();},POLL_MS);
     return {tick,picked:()=>new Set(picked),remaining:()=>list.length-picked.size,refresh:count,available,stop(){win.clearInterval?.(timer);}};

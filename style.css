@@ -383,3 +383,9 @@ a{color:var(--river)}
  100%{transform:translate(calc(var(--dx)*1.1),75vh) rotate(var(--r));opacity:0}
 }
 .intro.is-dissolve #intro-skip{opacity:0}
+/* V17.3 · Titre d'intro : écriture à la main épaisse, bleu foncé (style D validé). */
+.intro{color:#1F3B63}
+.intro-line{font-family:'Bradley Hand','Noteworthy','Chalkboard SE','Marker Felt',cursive;color:#1F3B63;-webkit-text-stroke:3px #1F3B63;text-shadow:0 2px 0 rgba(31,59,99,.25);font-weight:900;letter-spacing:-.01em}
+.intro-line.l1{font-size:clamp(34px,11vw,56px)}
+.intro-line.l2{font-size:clamp(26px,7vw,40px);font-weight:900;margin:0}
+.intro-line.l4{margin-top:2px}
