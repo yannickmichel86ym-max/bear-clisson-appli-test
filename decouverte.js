@@ -27,7 +27,22 @@
     B('ourson-marguerite','MARGUERITE',11.2,1362,47.083786,-1.267385,'Marguerite de Clisson est la fille d’Olivier V. Après 1420, accusée de trahison envers le duc de Bretagne, elle perd ses biens, dont le château de sa famille. Le château devient alors la propriété du duc. Son histoire rappelle que les châteaux changent de maîtres, mais que les familles, elles, ont une mémoire.','Marguerite de Clisson, fille d\'Olivier V','sources/wikipedia/Château_de_Clisson.txt'),
     B('ourson-jeanne','JEANNE',11.99,1460,47.082671,-1.275405,'Jeanne de Belleville est une femme courageuse. Quand son mari, Olivier IV, est décapité à Paris en 1343, elle se réfugie en Angleterre avec son fils, Olivier. Il lui faudra du courage et de la patience pour que son fils retrouve ses terres. C’est une histoire de voyage forcé, mais aussi de fidélité.','Sa femme, Jeanne de Belleville, se réfugie en Angleterre avec son fils','sources/wikipedia/Château_de_Clisson.txt'),
     B('ourson-oli','OLI',12.5,1473,47.08574,-1.279667,'Olivier V de Clisson est né dans ce château, et il devient connétable de France en 1380. C’est un homme puissant, mais il réside peu à Clisson. Il fonde aussi la collégiale Notre-Dame, que vous verrez tout à l’heure. Dans les murs de ce château, il y a l’histoire d’un enfant qui a grandi ici, et qui est devenu un grand seigneur.','devenu connétable en 1380','sources/wikipedia/Château_de_Clisson.txt'),
-    B('ourson-menard','MENARD',13.52,1603,47.087601,-1.281317,'René Ménard est un architecte nantais. Il reconstruit l’église Notre-Dame en 1887-1888, en s’inspirant d’une basilique de Rome. Le style italien de la ville a été composé par Lemot au début du XIXe siècle. Quand vous entrez dans cette église, vous voyez une ville qui se rêve dans un autre pays.','reconstruite en 1887-1888, par l\'architecte nantais René Ménard','sources/wikipedia/Église_Notre-Dame_de_Clisson.txt')
+    B('ourson-menard','MENARD',13.52,1603,47.087601,-1.281317,'René Ménard est un architecte nantais. Il reconstruit l’église Notre-Dame en 1887-1888, en s’inspirant d’une basilique de Rome. Le style italien de la ville a été composé par Lemot au début du XIXe siècle. Quand vous entrez dans cette église, vous voyez une ville qui se rêve dans un autre pays.','reconstruite en 1887-1888, par l\'architecte nantais René Ménard','sources/wikipedia/Église_Notre-Dame_de_Clisson.txt'),
+    B('ourson-cuchaud','CUCHAUD',1.04,139,47.088128,-1.280932,'','',null),
+    B('ourson-gaudin','GAUDIN',14.21,1684,47.086017,-1.286432,'','',null),
+    B('ourson-alain-thomas','ALAIN THOMAS',2.16,291,47.087058,-1.276582,'','',null),
+    B('ourson-guillaume','GUILLAUME',3.82,492,47.084916,-1.276038,'','',null),
+    B('ourson-vesta','VESTA',3.34,434,47.085158,-1.271421,'','',null),
+    B('ourson-diane','DIANE',3.96,513,47.085475,-1.274758,'','',null),
+    B('ourson-arsi','ARSI',5.79,735,47.083323,-1.265677,'','',null),
+    B('ourson-kayak','KAYAK',7.11,893,47.07723,-1.259884,'','',null),
+    B('ourson-foulon','FOULON',8.97,1105,47.074407,-1.25447,'','',null),
+    B('ourson-benji','BENJI',11.38,1384,47.084565,-1.269365,'','',null),
+    B('ourson-plessi','PLESSI',11.78,1430,47.082869,-1.273278,'','',null),
+    B('ourson-jipe-body','JIPÉ BODY',12.41,1461,47.084803,-1.278243,'','',null),
+    B('ourson-chevalier','CHEVALIER DE CLISSON',12.74,1502,47.085503,-1.279796,'','',null),
+    B('ourson-caillus','CAILLUS',13.24,1565,47.087274,-1.282104,'','',null),
+    B('ourson-clisson','CLISSON',13.91,1649,47.086801,-1.283255,'','',null),
   ]);
   const finite=(n,min,max)=>typeof n==='number'&&Number.isFinite(n)&&n>=min&&n<=max;
   const text=(s,max)=>typeof s==='string'&&s.trim().length>0&&s.trim().length<=max;
