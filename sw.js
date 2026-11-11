@@ -1,6 +1,6 @@
 'use strict';
 const PREFIX='bear-v05-'+self.registration.scope;
-const VERSION=PREFIX+'-17-carte-5';
+const VERSION=PREFIX+'-17-carte-6';
 const SHELL=['./partner-offers.mjs','./commerces-partenaires.mjs','./photo-spots.js','./places-map.js','./nearby-me.js','./fiches-monuments.js','./decouverte.js',
   './accueil.js','./balade-memoire.js','./rallye-points.js','./miel-gouttes.js','./miel.js','./immersion.js','./rencontre.js','./bear3d.js','./vendor/three.module.min.js','./data/lieux-carte.json','./photo-preparation.json','./partners-v7.js','./rallye.mjs','./loop-navigation.js','./interface-v7.js','./assets/brand/logo.jpg','./assets/brand/clisson-photo-fournie.jpg','./assets/brand/clisson-sevre-photo-fournie.jpg','./timeline.html','./timeline.mjs','./histoire-canonique.mjs','./carnet.html','./carnet.mjs','./carnet-souvenirs.mjs','./aventures.html','./aventures.mjs','./adventure-catalogue.mjs','./','./index.html','./navigation.js','./style.css','./data/parcours.json','./manifest.webmanifest','./vendor/maplibre-gl.mjs','./vendor/maplibre-gl-worker.mjs','./vendor/maplibre-gl.css','./assets/icon.svg','./assets/icon-192.png','./assets/icon-512.png'];
 self.addEventListener('install',e=>{
