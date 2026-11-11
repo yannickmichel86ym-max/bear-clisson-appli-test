@@ -12,9 +12,11 @@
   const finite=(n,min,max)=>typeof n==='number'&&Number.isFinite(n)&&n>=min&&n<=max;
   const nonempty=s=>typeof s==='string'&&s.trim().length>0;
 
+  // Mise en avant des commerces suspendue : seul le patrimoine est affiché. Les partenaires viendront plus tard.
+  let COMMERCES_ACTIVE=false;
   function eligible(item){
     return !!(item&&/^[nw][0-9]+$/.test(item.id)&&
-      ['patrimoine','commerce'].includes(item.type)&&nonempty(item.name)&&
+      (item.type==='patrimoine'||(COMMERCES_ACTIVE&&item.type==='commerce'))&&nonempty(item.name)&&
       finite(item.latitude,47.075,47.105)&&finite(item.longitude,-1.315,-1.260)&&
       item.osm&&['node','way'].includes(item.osm.type)&&
       item.id===(item.osm.type==='node'?'n':'w')+item.osm.id&&
@@ -249,6 +251,7 @@
       return null;
     }
   }
-  const api={GOLD,TOSCANE,PIN_ZOOM,eligible,validate,createSelection,mount,start};
+  // Réservé aux tests et à la réactivation future : les commerces restent masqués par défaut.
+  const api={GOLD,TOSCANE,PIN_ZOOM,eligible,validate,createSelection,mount,start,setCommercesActive:v=>{COMMERCES_ACTIVE=!!v;}};
   if(typeof module!=='undefined')module.exports=api;else root.BearPlacesMap=api;
 })(typeof window==='undefined'?globalThis:window);

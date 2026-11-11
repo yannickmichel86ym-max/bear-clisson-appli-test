@@ -7,6 +7,7 @@
  */
 (function(root){
   const PICK_M=25, MAX_ACCURACY_M=30, MAX_AGE_MS=15000, POLL_MS=2000, KEY='bear-miel-v2', MAX_STORED=500;
+  const STARTER=['miel-s1','miel-s2','miel-s3'];
   const finite=(n,min,max)=>typeof n==='number'&&Number.isFinite(n)&&n>=min&&n<=max;
 
   function haversine(a,b){
@@ -38,7 +39,8 @@
     }catch{return new Set();}
   }
   function savePicked(storage,picked){
-    try{storage?.setItem(KEY,JSON.stringify({ids:[...picked].slice(-MAX_STORED)}));return true;}catch{return false;}
+    // La réserve de départ n'est pas enregistrée : elle est recréée à chaque lancement.
+    try{storage?.setItem(KEY,JSON.stringify({ids:[...picked].filter(id=>!STARTER.includes(id)).slice(-MAX_STORED)}));return true;}catch{return false;}
   }
   function toFeatures(drops,picked){
     return {type:'FeatureCollection',features:drops.filter(d=>!picked.has(d.id))
@@ -48,6 +50,8 @@
   function attach(ui,{map,document:doc,window:win=root,storage=null,getFix=()=>win.bearRallyeFix?.()||win.bearDemoFix?.(),drops=root.BearMielGouttes?.GOUTTES}={}){
     const el=id=>doc.getElementById(id);
     const list=dropsFrom(drops),picked=loadPicked(storage),byId=new Map(list.map(d=>[d.id,d]));
+    // Réserve de départ : trois gouttes offertes au lancement, au cas où un ours serait croisé tout de suite.
+    for(const id of STARTER)picked.add(id);
     const SOURCE='bear-miel';
     const toast=msg=>{const t=el('decouverte-toast');if(!t)return;t.textContent=msg;t.hidden=false;};
     // Réserve disponible = gouttes ramassées moins le miel déjà offert aux oursons.

@@ -102,6 +102,8 @@
       current={bear,index,onCaught};samples=[];sess=session();
       el('rencontre-title').textContent=bear.nom;
       el('rencontre-safety').textContent=SAFETY;
+      // L'histoire de l'ours se lit avant de lui offrir du miel.
+      const story=el('rencontre-story');if(story)story.textContent=bear.indice||'Son histoire arrive bientôt. Offre-lui du miel pour faire sa connaissance.';
       if(!dlg.open)try{dlg.showModal();}catch{dlg.setAttribute('open','');}
       status('L’Ours te regarde…');
       try{const s=await loadScene();s.start();}catch{status('L’Ours ne peut pas apparaître sur cet appareil pour l’instant.');}

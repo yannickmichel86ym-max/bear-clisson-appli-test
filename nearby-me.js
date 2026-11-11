@@ -90,7 +90,7 @@
       notes.push('Distances en ligne droite, depuis des repères OpenStreetMap indicatifs. Ce n’est ni un itinéraire ni la preuve qu’on peut y accéder.');
       const p=doc.createElement('p');p.className='nearby-note';p.textContent=notes.join(' ');
       box.append(p);
-      for(const [type,title] of [['patrimoine','Patrimoine · or'],['commerce','Commerces · Toscane']]){
+      for(const [type,title] of [['patrimoine','Patrimoine · or']]){ // commerces : mise en avant suspendue
         const rows=nearest(ui.places,pos,type);
         if(rows.length)box.append(...section(title,type,rows));
       }

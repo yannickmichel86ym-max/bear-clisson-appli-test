@@ -8,7 +8,9 @@ const WALK={maxSpeed:3,jitter:4};
 let styleTimer=null;
 let rallyeFix=null;
 // Bouton « Partir à l'aventure » de l'accueil : démarre le GPS, sans bouton sur la carte.
-window.bearStartGps=()=>{if(active&&!gpsRunning&&!demoRunning)startGps();};
+// Démarrage demandé avant la fin du chargement de la trace : le GPS part dès que la carte est prête.
+let startWanted=false;
+window.bearStartGps=()=>{if(demoRunning||gpsRunning)return;if(!active){startWanted=true;return;}startGps();};
 // Lecture seule du GPS réel existant : aucun second suivi, aucune position de démo.
 window.bearRallyeFix=()=>gpsRunning&&!demoRunning&&!document.hidden?rallyeFix:null;
 // Démo : même lecture passive, sur le point de la démo affiché (aucun GPS réel). Ne sert qu'au halo de découverte.
@@ -58,6 +60,10 @@ let matched=null, lastFix=null, follow=true, heading=null, mapReady=false;
 let gpsReliable=false, minFixTime=0;
 let walked=0, walkedSinceAnchor=0, countedFix=null, userMoveAt=0, userZoom=null;
 let paused=false, track=[], lastOffAlert=-Infinity, reanchorPending=false, keepPaused=false, balade=null;
+// Pause automatique (comme une appli de course) : immobile quelques secondes => pause ; déplacement de quelques mètres => reprise.
+// Immobile = aucun pas compté (le parcouru filtre déjà le bruit GPS) pendant pauseMs. Reprise = 8 m de la position d'arrêt.
+const STILL={pauseMs:20000,resumeM:8,resumeAccuracy:20,courseM:4};
+let autoPaused=false, pauseSheetOpen=false, stillRef=null, moveFix=null, moveCourse=null, lastWalkAt=0, lastFixTime=0;
 let gpsRunning=false, gpsSession=0, watch=null, freshnessTimer=null, lastSampleTime=0;
 let offSince=null,lastOffSample=null,offRoute=false,audioEnabled=false,audioChosen=false;
 let demoRunning=false,demoPaused=false,demoAlong=0,demoTimer=null,demoLast=0;
@@ -79,7 +85,7 @@ function computeProgress(positions,here,previous=null,timestamp=Date.now(),accur
 // Ajoute au parcouru la distance réellement marchée entre deux mesures fiables, et enregistre le tracé.
 function countWalk(lat,lon,accuracy,timestamp){
  if(paused){countedFix=null;return;}
- if(!countedFix){countedFix={lat,lon,t:timestamp};recordPoint(lat,lon,timestamp,track.length>0);return;}
+ if(!countedFix){countedFix={lat,lon,t:timestamp};lastWalkAt=timestamp;recordPoint(lat,lon,timestamp,track.length>0);return;}
  if(timestamp<=countedFix.t)return;
  const d=metres([countedFix.lat,countedFix.lon],[lat,lon]);
  const dt=(timestamp-countedFix.t)/1000;
@@ -87,7 +93,7 @@ function countWalk(lat,lon,accuracy,timestamp){
  if(d<Math.max(WALK.jitter,accuracy*.5))return;
  // Saut impossible (téléportation, longue interruption) : on repart de la nouvelle mesure, sans compter.
  if(d>WALK.maxSpeed*dt+2*accuracy+10){countedFix={lat,lon,t:timestamp};return;}
- walked+=d;walkedSinceAnchor+=d;countedFix={lat,lon,t:timestamp};
+ walked+=d;walkedSinceAnchor+=d;countedFix={lat,lon,t:timestamp};lastWalkAt=timestamp;
  recordPoint(lat,lon,timestamp);
 }
 // Enregistre un point du parcours ; afterGap marque la reprise après une interruption (pas de droite fictive).
@@ -117,18 +123,48 @@ function offTraceDisplay(nearest){
 // Pause : l'écran pause propose CARNET / REPRENDRE / TERMINER.
 function resumeRecording(){
  if(!paused)return;
- paused=false;countedFix=null;walkedSinceAnchor=0;matched=null;reanchorPending=true;saveBalade();
+ paused=false;autoPaused=false;keepPaused=false;countedFix=null;walkedSinceAnchor=0;matched=null;reanchorPending=true;stillRef=null;lastWalkAt=lastFixTime;saveBalade();
  speak('Reprise',true);
  $('pause-open').textContent='❚❚ Pause';
 }
 function openPauseSheet(){
  const wasPaused=paused;
- paused=true;keepPaused=false;saveBalade();
+ paused=true;autoPaused=false;keepPaused=false;pauseSheetOpen=true;saveBalade();
  if(!wasPaused)speak('Mise en pause',true);
  $('pause-open').textContent='● En pause';
  const sheet=$('pause-sheet');
  if(!sheet.open){try{sheet.showModal();}catch{sheet.setAttribute('open','');}}
 }
+// Pause automatique : aucun écran ni annonce, seulement un message discret. Reprise dès un déplacement.
+function autoPause(lat,lon){
+ if(paused||!balade)return;
+ paused=true;autoPaused=true;countedFix=null;stillRef={lat,lon};saveBalade();
+ $('pause-open').textContent='● En pause';
+ $('confidence').textContent='Pause automatique · immobile, reprise dès que tu bouges';
+}
+// Immobilité (aucun pas compté depuis pauseMs) et déplacement (8 m depuis la position d'arrêt), sur chaque mesure fiable.
+function motionCheck(lat,lon,accuracy,timestamp){
+ if(accuracy>STILL.resumeAccuracy)return;
+ if(paused){
+  // Pause manuelle avec l'écran PAUSE ouvert : on attend REPRENDRE. Sinon, un vrai déplacement reprend le parcours.
+  if(!stillRef){stillRef={lat,lon};return;}
+  if(!pauseSheetOpen&&metres([stillRef.lat,stillRef.lon],[lat,lon])>=STILL.resumeM)resumeRecording();
+  return;
+ }
+ // Pause seulement une fois la marche commencée : attendre au départ n'est pas une pause.
+ if(walked>0&&lastWalkAt&&timestamp-lastWalkAt>=STILL.pauseMs)autoPause(lat,lon);
+}
+// Cap réel de déplacement : la carte tourne vers l'endroit où le joueur avance. À l'arrêt, le dernier cap reste.
+function updateMoveCourse(lat,lon,accuracy,timestamp){
+ if(accuracy>20)return;
+ if(!moveFix){moveFix={lat,lon};return;}
+ const d=metres([moveFix.lat,moveFix.lon],[lat,lon]);
+ if(d<STILL.courseM)return;
+ const target=bearing([moveFix.lat,moveFix.lon],[lat,lon]);
+ moveCourse=moveCourse===null?target:moveCourse+(((target-moveCourse+540)%360)-180)*.5;
+ moveFix={lat,lon};
+}
+function travelCourse(){return moveCourse??heading??0;}
 // Balade : mémoire locale (fichier balade-memoire.js), identifiant unique horodaté.
 // Reprise après fermeture de l'appli, batterie vide, appel…
 function newBalade(){balade={id:globalThis.BaladeMemoire?.newId()??'balade-'+Date.now(),startedAt:Date.now()};walked=0;walkedSinceAnchor=0;countedFix=null;track=[];paused=false;loopSession=null;saveBalade();}
@@ -159,7 +195,7 @@ function finishBalade(){
  try{
   globalThis.BaladeMemoire?.archive(summary);globalThis.BaladeMemoire?.clearActive();
  }catch{/* Sans stockage, la fin reste affichée à l'écran. */}
- balade=null;loopSession=null;track=[];walked=0;walkedSinceAnchor=0;countedFix=null;reanchorPending=false;
+ balade=null;loopSession=null;track=[];walked=0;walkedSinceAnchor=0;countedFix=null;reanchorPending=false;autoPaused=false;pauseSheetOpen=false;stillRef=null;moveFix=null;moveCourse=null;lastWalkAt=0;
  refreshTrack();
  const when=new Date(summary.startedAt).toLocaleString('fr-FR',{dateStyle:'short',timeStyle:'short'});
  $('end-summary').textContent=`${fmtKm(summary.walked)} parcourus · ${summary.points} points · démarrée le ${when} · identifiant ${summary.id}`;
@@ -267,7 +303,7 @@ function renderProgress(projection,point=projection.point){
  if(done.length===1)done.push(done[0]);
  map.getSource('progress')?.setData(line(done));
  }
- const course=routeHeading(projection)+(loopSession&&!demoRunning&&loopSession.direction<0?180:0);
+ const course=demoRunning||moveCourse===null?routeHeading(projection)+(loopSession&&!demoRunning&&loopSession.direction<0?180:0):moveCourse;
  positionMarker(point,demoRunning||gpsReliable,course);camera(point,course,demoRunning?100:650);
 }
 function suspendProgress(message){
@@ -282,7 +318,7 @@ function suspendProgress(message){
  status(message,true);
 }
 function resetSession(keepLoop=false){
- rallyeFix=null;
+ rallyeFix=null;stillRef=null;moveFix=null;moveCourse=null;autoPaused=false;lastWalkAt=0;
  if(!keepLoop)loopSession=null;
  // Balade reprise : le premier point retrouvé devient la nouvelle ancre (pas de saut compté).
  if(keepLoop&&loopSession)reanchorPending=true;
@@ -362,6 +398,20 @@ function announceProgress(projection,timestamp){
  const remaining=left<1000?new Intl.NumberFormat('fr-FR',{style:'unit',unit:'meter',unitDisplay:'long',maximumFractionDigits:0}).format(Math.round(left/10)*10):number.format(Math.round(left/1000));
  speak(distance+' '+(km===1?'parcouru':'parcourus')+'. Il reste environ '+remaining+' sur la trace.');
 }
+// Détection hors trace (confirmée après confirmMs). Tourne aussi pendant une pause automatique : la sécurité avant tout.
+function offRouteWatch(nearest,accuracy,timestamp){
+ const lowerGap=Math.max(0,nearest.gap-accuracy);
+ if(lowerGap>GPS.offThreshold){
+  milestonePending=null;
+  if(offSince===null||lastOffSample===null||timestamp-lastOffSample>GPS.maxAge)offSince=timestamp;
+  lastOffSample=timestamp;
+  if(!offRoute&&timestamp-offSince>=GPS.confirmMs){offRoute=true;lastOffAlert=timestamp;$('off-alert').hidden=false;syncMode();speakAlert();}
+ }else{
+  offSince=null;lastOffSample=null;
+  if(offRoute&&nearest.gap+accuracy<GPS.clearThreshold){offRoute=false;$('off-alert').hidden=true;syncMode();}
+ }
+ return offRoute;
+}
 function updateGpsDisplay(lat,lon,accuracy,timestamp=Date.now()){
  if(!gpsRunning||document.hidden)return;
  const now=Date.now();
@@ -373,22 +423,30 @@ function updateGpsDisplay(lat,lon,accuracy,timestamp=Date.now()){
  freshnessTimer=setTimeout(()=>{if(gpsRunning){$('signal').textContent='GPS sans mesure récente';suspendProgress('Signal GPS perdu. Attends une mesure récente.');}},Math.max(1,GPS.maxAge-(now-timestamp)));
  lastFix=[lat,lon];positionMarker(lastFix,false);
  $('accuracy').textContent=fmtM(accuracy);$('signal').textContent=accuracy>GPS.maxAccuracy?'GPS peu précis':'GPS actif';
- // Pause : la flèche reste visible, rien n'est compté ni enregistré.
- if(paused){positionMarker(lastFix,true,heading??0);camera(lastFix,heading??0);return;}
+ lastFixTime=timestamp;if(!lastWalkAt)lastWalkAt=timestamp;
+ updateMoveCourse(lat,lon,accuracy,timestamp);
+ // Le parcouru passe avant le contrôle d'immobilité : un pas réel repousse la pause automatique.
  if(accuracy<=GPS.maxAccuracy)countWalk(lat,lon,accuracy,timestamp);
+ if(paused)motionCheck(lat,lon,accuracy,timestamp); // pause : seule la reprise est évaluée ici
+ // Pause : la flèche reste visible, rien n'est compté ni enregistré.
+ if(paused){
+  positionMarker(lastFix,true,travelCourse());camera(lastFix,travelCourse());
+  // Pause automatique : on continue de surveiller la trace (un arrêt hors trace doit alerter), sans rien compter.
+  if(autoPaused&&accuracy<=GPS.maxAccuracy){
+   const {nearest}=computeProgress(active.points,lastFix,matched,timestamp,accuracy);
+   offRouteWatch(nearest,accuracy,timestamp);
+   if(offRoute){
+    if(timestamp-lastOffAlert>=60000){lastOffAlert=timestamp;speakAlert();}
+    $('off-alert').hidden=false;$('rejoin-text').textContent='Rejoins le tracé · '+fmtM(nearest.gap)+' de la ligne';
+   }
+  }
+  return;
+ }
  const {nearest,projection}=computeProgress(active.points,lastFix,matched,timestamp,accuracy);
  $('offset').textContent=fmtM(nearest.gap);
  if(accuracy>GPS.maxAccuracy){suspendProgress('Précision GPS insuffisante. Progression suspendue.');return;}
  const lowerGap=Math.max(0,nearest.gap-accuracy);
- if(lowerGap>GPS.offThreshold){
-  milestonePending=null;
-  if(offSince===null||lastOffSample===null||timestamp-lastOffSample>GPS.maxAge)offSince=timestamp;
-  lastOffSample=timestamp;
-  if(!offRoute&&timestamp-offSince>=GPS.confirmMs){offRoute=true;lastOffAlert=timestamp;$('off-alert').hidden=false;syncMode();speakAlert();}
- }else{
-  offSince=null;lastOffSample=null;
-  if(offRoute&&nearest.gap+accuracy<GPS.clearThreshold){offRoute=false;$('off-alert').hidden=true;syncMode();}
- }
+ offRouteWatch(nearest,accuracy,timestamp);
  // Hors trace : le parcours continue d'être enregistré et suivi ; aucune progression n'est figée.
  if(offRoute){
   entryCandidate=null;entryDisplay();
@@ -397,21 +455,24 @@ function updateGpsDisplay(lat,lon,accuracy,timestamp=Date.now()){
   $('rejoin-text').textContent='Rejoins le tracé · '+fmtM(nearest.gap)+' de la ligne';
   $('confidence').textContent='Hors trace · parcours enregistré';
   offTraceDisplay(nearest);
-  positionMarker(lastFix,true,heading??0);camera(lastFix,heading??0);
+  positionMarker(lastFix,true,travelCourse());camera(lastFix,travelCourse());
   status('Ton parcours est enregistré. Reprise automatique dès que tu rejoins le tracé.',true);
   return;
  }
- if(lowerGap>GPS.offThreshold){entryCandidate=null;entryDisplay();offTraceDisplay(nearest);positionMarker(lastFix,true,heading??0);camera(lastFix,heading??0);$('confidence').textContent='Écart à confirmer';return;}
+ if(lowerGap>GPS.offThreshold){entryCandidate=null;entryDisplay();offTraceDisplay(nearest);positionMarker(lastFix,true,travelCourse());camera(lastFix,travelCourse());$('confidence').textContent='Écart à confirmer';return;}
  // Zone incertaine (proche de la trace sans projection nette) : on attend une mesure nette, sans message d'erreur.
- if(nearest.gap+accuracy>GPS.clearThreshold||!projection){offTraceDisplay(nearest);positionMarker(lastFix,false);camera(lastFix,heading??0);status(nearest.gap+accuracy>GPS.clearThreshold?'Proximité de la trace incertaine. Attends une meilleure mesure.':'Position ambiguë à un croisement. Le suivi reprend dès que la trace est nette.');return;}
+ if(nearest.gap+accuracy>GPS.clearThreshold||!projection){offTraceDisplay(nearest);positionMarker(lastFix,false);camera(lastFix,travelCourse());status(nearest.gap+accuracy>GPS.clearThreshold?'Proximité de la trace incertaine. Attends une meilleure mesure.':'Position ambiguë à un croisement. Le suivi reprend dès que la trace est nette.');return;}
  gpsReliable=true;
+ // Pause automatique : évaluée seulement sur une mesure nette (jamais sur une mesure ambiguë ou imprécise).
+ motionCheck(lat,lon,accuracy,timestamp);
+ if(paused){positionMarker(lastFix,true,travelCourse());camera(lastFix,travelCourse());return;}
  if(!loopSession){
   entryCandidate=entryCandidate||{...projection,timestamp};
   // Sens déduit du déplacement réel depuis le premier point fiable : aucun bouton à toucher.
   const moved=LoopNavigation.delta(projection.along,entryCandidate.along,totalMeters);
   if(Math.abs(moved)<GPS.senseMeters){
    entryDisplay();
-   const course=routeHeading(projection);positionMarker(lastFix,true,course);camera(lastFix,course);
+   const course=travelCourse();positionMarker(lastFix,true,course);camera(lastFix,course);
    $('confidence').textContent='Départ à confirmer';status('Sur la boucle · marche quelques dizaines de mètres, le sens se détecte seul.');return;
   }
   startLoop(entryCandidate,moved>0?1:-1);
@@ -439,6 +500,7 @@ function startGps(){
  if(gpsRunning||!active)return;
  if(!('geolocation' in navigator)){status('Géolocalisation non disponible dans ce navigateur.',true);return;}
  if(!window.isSecureContext){status('GPS : une adresse HTTPS ou localhost est nécessaire.',true);return;}
+ navigator.permissions?.query?.({name:'geolocation'}).then(p=>{if(p.state==='denied')status('Localisation bloquée pour ce site. Autorise-la dans les réglages du navigateur, puis redémarre le GPS.',true);}).catch(()=>{});
  stopDemo(false);beginBalade();resetSession(true);if(loopSession&&mapReady){try{renderProgress(loopSession.previous,loopSession.previous.point);}catch{/* Affichage rétabli au prochain relevé. */}}follow=true;gpsRunning=true;minFixTime=Date.now();const session=++gpsSession;
  if(!audioChosen)audioEnabled=true;
  void requestWakeLock();
@@ -560,7 +622,9 @@ async function main(){
   $('pause-resume').onclick=()=>{$('pause-sheet').close();};
   $('pause-carnet').onclick=()=>{keepPaused=true;$('pause-sheet').close();$('rallye-open')?.click();};
   $('pause-end').onclick=()=>{$('pause-sheet').close();finishBalade();};
-  $('pause-sheet').onclose=()=>{if(!keepPaused&&paused)resumeRecording();};
+  $('pause-sheet').onclose=()=>{pauseSheetOpen=false;if(!keepPaused&&paused)resumeRecording();};
+  // Carnet fermé sans REPRENDRE : le parcours repart (sinon la distance restait figée).
+  $('rallye')?.addEventListener?.('close',()=>{if(paused&&keepPaused)resumeRecording();});
   $('end-close').onclick=()=>$('end-sheet').close();
   // Balade en cours trouvée à l'ouverture : reprendre ou terminer, jamais de reprise silencieuse.
   $('resume-continue').onclick=()=>{$('resume-sheet').close();$('enter')?.click?.();};
@@ -584,6 +648,7 @@ async function main(){
   };
   for(const id of ['fit','center','toggle','demo','reset-gps'])$(id).disabled=false;
   entryDisplay();status('Départ libre sur la boucle · GPS ou Démo au choix.');resumeFollow();
+  if(startWanted){startWanted=false;startGps();}
   // Échec distant : le style local et les couches de trace restent disponibles.
   fetch(STYLE,{cache:'no-store'}).then(r=>{if(!r.ok)throw Error();return r.json();}).then(style=>{
    // Le style officiel fournit ses sources, sprites et glyphes.

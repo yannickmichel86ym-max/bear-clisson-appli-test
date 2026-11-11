@@ -7,7 +7,9 @@
  * - Stockage local : oursons attrapés (identifiant + date) et points de l'organisateur sur cet appareil.
  */
 (function(root){
-  const NEAR_M=40, LEAVE_M=70, MAX_ACCURACY_M=30, MAX_AGE_MS=15000, BEAR_M=35, POLL_MS=2000;
+  const NEAR_M=40, LEAVE_M=70, MAX_ACCURACY_M=30, MAX_AGE_MS=15000, BEAR_M=3, POLL_MS=2000;
+  // Mise en avant des commerces suspendue : seuls les lieux de patrimoine sont suivis (aucun repère commerce).
+  const COMMERCES_ACTIVE=false;
   const BEARS_KEY='bear-oursons-v1', RALLY_KEY='bear-rallye-points-v1';
   const BOX={minLat:46.95,maxLat:47.25,minLon:-1.5,maxLon:-1.05};
   // 14 oursons, espacés d’au moins 500 m le long du parcours (ordre du parcours). Chacun sur un point réel de data/parcours.json (index « i »).
@@ -84,9 +86,10 @@
     else for(const id of previous)near.add(id); // signal douteux : on ne change rien plutôt que d'inventer
     return {near,entered:[...near].filter(id=>!previous.has(id)),left:[...previous].filter(id=>!near.has(id)),reliable:!!ok};
   }
+  // Ours attrapable : à moins de 3 m de la position (tolérance resserrée pour cette étape du parcours).
   function canCatch(bear,fix,now=Date.now()){
     const ok=readFix(fix,now);
-    return !!ok&&haversine(ok,bear)+ok.accuracy/2<=BEAR_M;
+    return !!ok&&haversine(ok,bear)<=BEAR_M;
   }
   function loadJSON(storage,key,fallback){try{const v=JSON.parse(storage?.getItem(key)||'null');return v??fallback;}catch{return fallback;}}
   function saveJSON(storage,key,value){try{storage?.setItem(key,JSON.stringify(value));return true;}catch{return false;}}
@@ -121,7 +124,7 @@
 
   function attach(ui,{map,Marker,document:doc,window:win=root,storage=null,getFix=()=>win.bearRallyeFix?.()||win.bearDemoFix?.(),fiches=win.BearFiches,shipped=[]}={}){
     const el=id=>doc.getElementById(id);
-    const allPlaces=(ui?.places||[]).filter(p=>p.type==='patrimoine'||p.type==='commerce'),byId=new Map(allPlaces.map(p=>[p.id,p]));
+    const allPlaces=(ui?.places||[]).filter(p=>p.type==='patrimoine'||(COMMERCES_ACTIVE&&p.type==='commerce')),byId=new Map(allPlaces.map(p=>[p.id,p]));
     const bears=BEARS;
     let near=new Set(),caught=loadCaught(storage),orga=false,draft=null,toastTimer=null;
     let rally=loadJSON(storage,RALLY_KEY,[]);if(!Array.isArray(rally))rally=[];rally=rally.filter(validRallyPoint);
@@ -213,6 +216,7 @@
     // Entrée dans le carnet : appelée une fois la rencontre terminée (ou directement sans module 3D).
     function commitCatch(bear,photo){
       const win2=win;
+      const from=bearMarkers.get(bear.id)?._el?.getBoundingClientRect?.();
       const lieu=meetingPlace(bear);
       caught={...caught,[bear.id]:{t:Date.now(),lieu}};
       const saved=saveJSON(storage,BEARS_KEY,caught);
@@ -220,10 +224,40 @@
       toast('🧸 '+bear.nom+' rejoint ton carnet ! Votre rencontre : '+lieu+'.'+(saved?'':' Ce souvenir disparaîtra à la fermeture de l’appli.'));
       renderCollection();
       bearMarkers.get(bear.id)?._el?.classList?.add('ourson-capture');
-      const pulse=el('rallye-open');pulse?.classList?.add('carnet-pulse');
-      win2.setTimeout?.(()=>{pulse?.classList?.remove('carnet-pulse');renderBears(getFix());},900);
+      win2.setTimeout?.(()=>renderBears(getFix()),900);
+      pourDansCarnet(from,bear,photo);
       try{win2.navigator?.vibrate?.(80);}catch{}
       return true;
+    }
+    // L'ours est aspiré par le carnet (fantôme qui rétrécit vers le bouton), puis le carnet s'ouvre et tourne ses pages.
+    function pourDansCarnet(from,bear,photo){
+      const cible=el('rallye-open');
+      const to=cible?.getBoundingClientRect?.();
+      const ghostHost=doc.body;
+      try{
+        if(!from||!to||!ghostHost?.append||!doc.createElement)return ouvrirCarnet();
+        const ghost=doc.createElement('div');ghost.className='carnet-ghost';ghost.setAttribute('aria-hidden','true');
+        if(photo){const img=doc.createElement('img');img.src=photo;img.alt='';ghost.append(img);}else ghost.textContent='🧸';
+        ghost.style.left=(from.left+from.width/2-30)+'px';ghost.style.top=(from.top+from.height/2-30)+'px';
+        ghostHost.append(ghost);
+        const dx=(to.left+to.width/2)-(from.left+from.width/2),dy=(to.top+to.height/2)-(from.top+from.height/2);
+        const frames=[
+          {transform:'translate(0,0) scale(1) rotate(0deg)',opacity:1},
+          {transform:`translate(${dx*.45}px,${dy*.45-60}px) scale(1.15) rotate(-12deg)`,opacity:1,offset:.35},
+          {transform:`translate(${dx}px,${dy}px) scale(.06) rotate(35deg)`,opacity:0.2}];
+        const anim=ghost.animate?.(frames,{duration:900,easing:'cubic-bezier(.55,0,.9,.5)',fill:'forwards'});
+        let fini=false;const fin=()=>{if(fini)return;fini=true;ghost.remove();ouvrirCarnet();};
+        if(anim)anim.onfinish=fin;else win.setTimeout?.(fin,900);
+        win.setTimeout?.(fin,1400);
+      }catch{ouvrirCarnet();}
+    }
+    // Carnet ouvert : ses pages se feuillettent (classe retirée après l'animation).
+    function ouvrirCarnet(){
+      const dlg=el('rallye');
+      try{el('rallye-open')?.click();}catch{}
+      if(typeof dlg?.classList?.add!=='function')return;
+      dlg.classList.remove?.('carnet-turn');void dlg.offsetWidth;dlg.classList.add('carnet-turn');
+      win.setTimeout?.(()=>dlg.classList.remove?.('carnet-turn'),1800);
     }
     function tryCatch(bear){
       if(caught[bear.id]){toast(bear.nom+' est déjà dans ton carnet !');return false;}
