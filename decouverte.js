@@ -86,10 +86,10 @@
     else for(const id of previous)near.add(id); // signal douteux : on ne change rien plutôt que d'inventer
     return {near,entered:[...near].filter(id=>!previous.has(id)),left:[...previous].filter(id=>!near.has(id)),reliable:!!ok};
   }
-  // Ours attrapable : à moins de 3 m de la position (tolérance resserrée pour cette étape du parcours).
+  // Ours attrapable : à moins de 3 m, marge de la moitié de la précision GPS comprise (≈ 7 m pour 8 m de précision).
   function canCatch(bear,fix,now=Date.now()){
     const ok=readFix(fix,now);
-    return !!ok&&haversine(ok,bear)<=BEAR_M;
+    return !!ok&&haversine(ok,bear)+ok.accuracy/2<=BEAR_M;
   }
   function loadJSON(storage,key,fallback){try{const v=JSON.parse(storage?.getItem(key)||'null');return v??fallback;}catch{return fallback;}}
   function saveJSON(storage,key,value){try{storage?.setItem(key,JSON.stringify(value));return true;}catch{return false;}}
@@ -214,9 +214,12 @@
       renderCollection();
     }
     // Entrée dans le carnet : appelée une fois la rencontre terminée (ou directement sans module 3D).
-    function commitCatch(bear,photo){
+    function commitCatch(bear,photo,ctx={}){
       const win2=win;
-      const from=bearMarkers.get(bear.id)?._el?.getBoundingClientRect?.();
+      let from=ctx.from||bearMarkers.get(bear.id)?._el?.getBoundingClientRect?.();
+      // Ours hors écran (carte décentrée) : l'envol part du centre de l'écran.
+      if(from&&win.innerWidth&&(from.right<0||from.bottom<0||from.left>win.innerWidth||from.top>win.innerHeight||!from.width))from=null;
+      if(!from&&win.innerWidth)from={left:win.innerWidth/2-30,top:win.innerHeight/2-30,width:60,height:60};
       const lieu=meetingPlace(bear);
       caught={...caught,[bear.id]:{t:Date.now(),lieu}};
       const saved=saveJSON(storage,BEARS_KEY,caught);
@@ -225,39 +228,82 @@
       renderCollection();
       bearMarkers.get(bear.id)?._el?.classList?.add('ourson-capture');
       win2.setTimeout?.(()=>renderBears(getFix()),900);
+      ouvrirCarnet();
+      ctx.closeRencontre?.();
       pourDansCarnet(from,bear,photo);
       try{win2.navigator?.vibrate?.(80);}catch{}
       return true;
     }
-    // L'ours est aspiré par le carnet (fantôme qui rétrécit vers le bouton), puis le carnet s'ouvre et tourne ses pages.
+    // L'ours s'envole vers le haut du carnet, puis une onde se propage et la liste défile jusqu'à sa fiche.
+    let bearIndexForSettle=0;
+    // Attend que la position de la fiche ne bouge plus (fin du défilement), puis appelle fn.
+    function settle(fn){
+      let last=null,stable=0,tries=0;
+      const tick=()=>{
+        const r=el('oursons-list')?.children?.[bearIndexForSettle]?.getBoundingClientRect?.();
+        const y=r?Math.round(r.top):null;
+        stable=y!==null&&y===last?stable+1:0;last=y;tries++;
+        if(stable>=3||tries>60){fn();return;}
+        setTimeout(tick,50);
+      };
+      setTimeout(tick,50);
+    }
     function pourDansCarnet(from,bear,photo){
-      const cible=el('rallye-open');
-      const to=cible?.getBoundingClientRect?.();
-      const ghostHost=doc.body;
       try{
-        if(!from||!to||!ghostHost?.append||!doc.createElement)return ouvrirCarnet();
+        const idx=bears.indexOf(bear);
+        bearIndexForSettle=idx;
+        const slot=el('oursons-list')?.children?.[idx];
+        const host=el('rallye')||doc.body;
+        const count=el('oursons-count');
+        if(!from||!count||!host?.append||!doc.createElement)return;
+        host.scrollTop=0;
+        const to=count.getBoundingClientRect?.();
+        if(!to||!to.width)return;
         const ghost=doc.createElement('div');ghost.className='carnet-ghost';ghost.setAttribute('aria-hidden','true');
         if(photo){const img=doc.createElement('img');img.src=photo;img.alt='';ghost.append(img);}else ghost.textContent='🧸';
-        ghost.style.left=(from.left+from.width/2-30)+'px';ghost.style.top=(from.top+from.height/2-30)+'px';
-        ghostHost.append(ghost);
+        const w=from.width||60;
+        ghost.style.left=(from.left+from.width/2-w/2)+'px';ghost.style.top=(from.top+from.height/2-w/2)+'px';ghost.style.width=w+'px';ghost.style.height=w+'px';
+        host.append(ghost);
         const dx=(to.left+to.width/2)-(from.left+from.width/2),dy=(to.top+to.height/2)-(from.top+from.height/2);
         const frames=[
-          {transform:'translate(0,0) scale(1) rotate(0deg)',opacity:1},
-          {transform:`translate(${dx*.45}px,${dy*.45-60}px) scale(1.15) rotate(-12deg)`,opacity:1,offset:.35},
-          {transform:`translate(${dx}px,${dy}px) scale(.06) rotate(35deg)`,opacity:0.2}];
-        const anim=ghost.animate?.(frames,{duration:900,easing:'cubic-bezier(.55,0,.9,.5)',fill:'forwards'});
-        let fini=false;const fin=()=>{if(fini)return;fini=true;ghost.remove();ouvrirCarnet();};
-        if(anim)anim.onfinish=fin;else win.setTimeout?.(fin,900);
-        win.setTimeout?.(fin,1400);
-      }catch{ouvrirCarnet();}
+          {transform:'translate(0,0) scale(1)',opacity:1},
+          {transform:`translate(${dx*.5}px,${dy*.5-40}px) scale(1.2)`,opacity:1,offset:.5},
+          {transform:`translate(${dx}px,${dy}px) scale(.4)`,opacity:.9}];
+        const step=(fn)=>{let done=false;return ()=>{if(!done){done=true;fn();}};};
+        // 1) L'ours entre dans le carnet.
+        const afterFlight=step(()=>{
+          ghost.remove();
+          // La liste est reconstruite juste après l'entrée de l'ours : on cherche la fiche au moment voulu.
+          const current=()=>el('oursons-list')?.children?.[idx];
+          // 2) Le carnet défile tout seul jusqu'à la fiche de l'ours.
+          const slot0=current();
+          const hostBox=host.getBoundingClientRect?.(),sb=slot0?.getBoundingClientRect?.();
+          if(hostBox&&sb&&host.scrollBy)host.scrollBy({top:sb.top-hostBox.top-host.clientHeight/2+sb.height/2,behavior:'smooth'});
+          // 3) Quand le défilement est terminé, l'onde part exactement de la photo de la fiche.
+          settle(()=>{
+            const slot=current();
+            const target=slot?.querySelector?.('.pokedex-photo')?.getBoundingClientRect?.();
+            slot?.classList?.add('pokedex-new');
+            if(target&&target.width&&doc.createElement){
+              const ring=doc.createElement('div');ring.className='carnet-ripple';ring.setAttribute('aria-hidden','true');
+              const d=Math.max(target.width,target.height);
+              ring.style.left=(target.left+target.width/2-d/2)+'px';ring.style.top=(target.top+target.height/2-d/2)+'px';
+              ring.style.width=ring.style.height=d+'px';
+              host.append(ring);
+              const r=ring.animate?.([{transform:'scale(.6)',opacity:.9},{transform:'scale(4.5)',opacity:0}],{duration:900,easing:'ease-out',fill:'forwards'});
+              if(r)r.onfinish=()=>ring.remove();else setTimeout(()=>ring.remove(),900);
+            }
+            setTimeout(()=>current()?.classList?.remove('pokedex-new'),2200);
+          });
+        });
+        const anim=ghost.animate?.(frames,{duration:1000,easing:'cubic-bezier(.45,0,.3,1)',fill:'forwards'});
+        if(anim)anim.onfinish=afterFlight;else setTimeout(afterFlight,1000);
+        setTimeout(afterFlight,1600);
+      }catch{/* Animation facultative : la fiche reste ajoutée au carnet. */}
     }
-    // Carnet ouvert : ses pages se feuillettent (classe retirée après l'animation).
+    // Carnet ouvert directement (sans passer par la carte).
     function ouvrirCarnet(){
-      const dlg=el('rallye');
       try{el('rallye-open')?.click();}catch{}
-      if(typeof dlg?.classList?.add!=='function')return;
-      dlg.classList.remove?.('carnet-turn');void dlg.offsetWidth;dlg.classList.add('carnet-turn');
-      win.setTimeout?.(()=>dlg.classList.remove?.('carnet-turn'),1800);
     }
     function tryCatch(bear){
       if(caught[bear.id]){toast(bear.nom+' est déjà dans ton carnet !');return false;}
@@ -271,7 +317,7 @@
       }
       // Avec le module 3D : rencontre (miel à l'arrêt). Sans lui : entrée directe, comme avant.
       if(win.BearRencontre?.controller){
-        win.BearRencontre.controller.open(bear,{index:bears.indexOf(bear),onCaught:photo=>commitCatch(bear,photo)});
+        win.BearRencontre.controller.open(bear,{index:bears.indexOf(bear),onCaught:(photo,ctx)=>commitCatch(bear,photo,ctx)});
         return true;
       }
       return commitCatch(bear,null);

@@ -139,6 +139,7 @@ function openPauseSheet(){
 function autoPause(lat,lon){
  if(paused||!balade)return;
  paused=true;autoPaused=true;countedFix=null;stillRef={lat,lon};saveBalade();
+ speak('Mise en pause',true);
  $('pause-open').textContent='● En pause';
  $('confidence').textContent='Pause automatique · immobile, reprise dès que tu bouges';
 }

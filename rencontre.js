@@ -132,9 +132,11 @@
         const photo=scene?.snapshot?.()||null;
         sess.finish();
         const bear=current.bear,done=current.onCaught;
-        close(null);
+        // La fenêtre reste ouverte : l'ours s'envole depuis elle, sans passer par la carte.
+        const from=el('rencontre-canvas')?.getBoundingClientRect?.()||null;
         if(photo){const photos=loadPhotos(storage);photos[bear.id]=photo;savePhotos(storage,photos);}
-        done?.(photo);
+        const closeRencontre=()=>close(null);
+        if(done)done(photo,{from,closeRencontre});else closeRencontre();
       },FEED_S*1000);
     }
     el('rencontre-feed')&&(el('rencontre-feed').onclick=feed);
